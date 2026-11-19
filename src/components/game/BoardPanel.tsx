@@ -1,5 +1,5 @@
-import { useState, type FormEvent } from 'react';
-import { money, type GameSnapshot, type GameSpace, type SpaceType } from '../../scripts/gameApi';
+import { useEffect, useState, type FormEvent } from 'react';
+import { gameRpc, money, type GameSnapshot, type GameSpace, type SpaceType } from '../../scripts/gameApi';
 import type { GameActions } from './RoomApp';
 interface Props { state: GameSnapshot; actions: GameActions; disabled: boolean }
 const card='rounded-2xl border border-stone-200 bg-white p-5 shadow-sm sm:p-6';
@@ -11,8 +11,8 @@ const groups: Record<string,string> = {
 };
 const spaceTypes: [SpaceType,string][]=[
   ['start','Salida'],['property','Terreno'],['railroad','Estación / transporte'],
-  ['utility','Servicio público'],['tax','Impuesto'],['chance','La Tómbola'],
-  ['community','El Chamán'],['jail','Cárcel'],['go_to_jail','Ve a la cárcel'],
+  ['utility','Servicio público'],['tax','Impuesto'],['chance','El Chamán'],
+  ['community','La Tómbola'],['jail','Cárcel'],['go_to_jail','Ve a la cárcel'],
   ['parking','Estacionamiento'],['other','Otra casilla']
 ];
 const numberOrNull = (value: FormDataEntryValue | null) => {
@@ -20,6 +20,16 @@ const numberOrNull = (value: FormDataEntryValue | null) => {
   return raw==='' ? null : Number(raw);
 };
 export default function BoardPanel({state,actions,disabled}:Props) {
+  const [verifiedNames,setVerifiedNames]=useState<string[]>([]);
+  useEffect(() => {
+    let active=true;
+    void gameRpc<{items:{name:string;kind:string}[]}>('game_edition_reference',{p_sku:'F3182'})
+      .then(reference=>{
+        if(active) setVerifiedNames(reference.items.filter(item=>item.kind==='landmark').map(item=>item.name));
+      })
+      .catch(()=>{});
+    return ()=>{active=false;};
+  },[]);
   const [selection,setSelection]=useState(0);
   const selected=state.spaces.find(s=>s.position===selection);
   const waiting=state.room.status==='waiting';
@@ -132,7 +142,10 @@ export default function BoardPanel({state,actions,disabled}:Props) {
       {host && (waiting || (active && !selected.ownerId)) && <form key={selected.position+'-'+state.room.revision} onSubmit={saveSpace} className="mt-6 grid gap-4 rounded-xl border border-emerald-100 bg-emerald-50 p-4">
         <h3 className="text-lg font-black text-emerald-950">Editar casilla {selected.position}</h3>
         <label className="grid gap-1 text-sm font-semibold">Nombre real de la casilla
-          <input className={field} name="name" required maxLength={80} defaultValue={selected.name}/></label>
+          <input className={field} name="name" required maxLength={80} defaultValue={selected.name} list="verified-f3182-landmarks"/>
+          <datalist id="verified-f3182-landmarks">{verifiedNames.map(name=><option key={name} value={name}/>)}</datalist>
+        </label>
+        <p className="text-xs text-stone-600">Referencia F3182: {verifiedNames.length} destinos confirmados. La ubicación, los precios y los alquileres deben comprobarse con la tarjeta física.</p>
         <div className="grid gap-4 sm:grid-cols-2">
           <label className="grid gap-1 text-sm font-semibold">Tipo
             <select className={field} name="type" defaultValue={selected.type}>
