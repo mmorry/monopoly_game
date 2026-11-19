@@ -1,22 +1,44 @@
-## Development
+## Project: Monopoly Perú
 
-When starting the dev server, use background mode:
+Hybrid multiplayer Monopoly banking application.
 
-```
-astro dev --background
-```
+### Tech Stack
+- Astro 7 + TypeScript strict
+- React Islands for interactive components
+- Tailwind CSS 4
+- pnpm as package manager
+- Supabase PostgreSQL
+- Supabase Realtime using WebSockets
+- Vercel deployment
 
-Manage the background server with `astro dev stop`, `astro dev status`, and `astro dev logs`.
+### Architecture
+- Mobile-first PWA.
+- Prefer Astro components for static UI.
+- Use React only for interactive components.
+- Organize code by functional modules.
+- Keep business logic separate from UI.
+- Follow Modern Web Guidance when available.
 
-## Documentation
+### Game Rules
+- No user registration or login.
+- Players join private rooms using invite codes.
+- Maximum players defined by the Monopoly edition.
+- Rooms close automatically when games start.
+- Support physical and virtual dice.
+- Physical dice results are entered manually.
+- Virtual dice results are generated server-side.
+- The physical board remains the primary game.
+- Virtual banking manages financial transactions.
+- Synchronize game events through WebSockets.
+- No periodic polling.
 
-Full documentation: https://docs.astro.build
-
-Consult these guides before working on related tasks:
-
-- [Adding pages, dynamic routes, or middleware](https://docs.astro.build/en/guides/routing/)
-- [Working with Astro components](https://docs.astro.build/en/basics/astro-components/)
-- [Using React, Vue, Svelte, or other framework components](https://docs.astro.build/en/guides/framework-components/)
-- [Adding or managing content](https://docs.astro.build/en/guides/content-collections/)
-- [Adding styles or using Tailwind](https://docs.astro.build/en/guides/styling/)
-- [Supporting multiple languages](https://docs.astro.build/en/guides/internationalization/)
+### Development Rules
+- Use pnpm exclusively.
+- Follow TypeScript strict typing.
+- Avoid unnecessary dependencies.
+- Never expose Supabase service credentials.
+- Validate financial operations server-side.
+- Implement one feature at a time.
+- Do not modify unrelated modules.
+- Run checks after changes.
+- Explain significant technical decisions.

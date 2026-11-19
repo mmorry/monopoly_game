@@ -1,0 +1,99 @@
+---
+interface Props {
+	mode: 'create' | 'join';
+}
+
+const { mode } = Astro.props;
+const isCreate = mode === 'create';
+const formTitle = isCreate ? 'Crear una sala' : 'Unirse a una sala';
+const formDescription = isCreate
+	? 'Elige cómo te verán los demás jugadores. Puedes nombrar la mesa si quieres.'
+	: 'Pide el código de la sala al anfitrión e ingresa el alias que usarás en la partida.';
+const actionLabel = isCreate ? 'Continuar para crear' : 'Continuar para unirse';
+---
+
+<form class="rounded-[2rem] border border-amber-950/10 bg-white/90 p-5 shadow-[0_20px_50px_rgb(55_48_35_/_0.14)] sm:p-7" action={isCreate ? '/crear' : '/unirse'} method="post" aria-labelledby="form-title" data-room-form>
+	<div class="mb-7">
+		<p class="text-xs font-bold uppercase tracking-[0.18em] text-red-700">Primer paso</p>
+		<h1 id="form-title" class="mt-1 text-3xl font-black tracking-tight text-emerald-950">{formTitle}</h1>
+		<p class="mt-3 leading-6 text-stone-700">{formDescription}</p>
+	</div>
+
+	<p class="mb-5 text-sm text-stone-600"><span aria-hidden="true">*</span> Campos obligatorios</p>
+
+	<div class="grid gap-5">
+		{isCreate && (
+			<div class="field">
+				<label for="room-name" class="text-sm font-bold text-emerald-950">Nombre de la sala <span class="font-normal text-stone-500">(opcional)</span></label>
+				<input id="room-name" name="roomName" type="text" maxlength="48" placeholder="Ej. Noche de Monopoly" class="field-control" />
+				<p class="mt-2 text-sm text-stone-500">Puedes dejarlo vacío para nombrarla después.</p>
+			</div>
+		)}
+
+		{!isCreate && (
+			<div class="field">
+				<label for="room-code" class="text-sm font-bold text-emerald-950">Código de sala <span aria-hidden="true">*</span></label>
+				<input id="room-code" name="roomCode" type="text" required maxlength="24" inputmode="text" enterkeyhint="next" autocorrect="off" autocapitalize="characters" spellcheck="false" placeholder="Ej. LIMA-2026" data-error="room-code-error" class="field-control uppercase" />
+				<p id="room-code-error" class="field-error"><span aria-hidden="true">Error:</span> Ingresa el código de sala que te compartieron.</p>
+			</div>
+		)}
+
+		<div class="field">
+			<label for="player-alias" class="text-sm font-bold text-emerald-950">{isCreate ? 'Alias del anfitrión' : 'Alias del jugador'} <span aria-hidden="true">*</span></label>
+			<input id="player-alias" name="playerAlias" type="text" required minlength="2" maxlength="24" autocomplete="nickname" enterkeyhint="done" placeholder="Ej. Carla" data-error="player-alias-error" class="field-control" />
+			<p id="player-alias-error" class="field-error"><span aria-hidden="true">Error:</span> Ingresa un alias de al menos 2 caracteres.</p>
+		</div>
+	</div>
+
+	<button type="submit" class="mt-8 flex min-h-12 w-full items-center justify-center rounded-xl bg-emerald-700 px-5 py-3 font-bold text-white shadow-[0_5px_0_#14532d] transition duration-150 ease-out hover:bg-emerald-600 active:translate-y-0.5 active:shadow-[0_3px_0_#14532d] focus-visible:outline-3 focus-visible:outline-offset-4 focus-visible:outline-emerald-700">
+		{actionLabel}
+	</button>
+	<p class="mt-4 text-center text-sm leading-6 text-stone-500" data-form-status role="status" aria-live="polite">Aún no se creará ni se modificará ninguna sala.</p>
+</form>
+
+<style>
+	.field {
+		display: grid;
+		gap: 0.45rem;
+	}
+
+	.field-control {
+		min-block-size: 3rem;
+		inline-size: 100%;
+		border: 2px solid rgb(120 113 108);
+		border-radius: 0.75rem;
+		background: white;
+		padding: 0.75rem 0.875rem;
+		font: inherit;
+		font-size: max(1rem, 1em);
+		line-height: 1.5;
+		color: rgb(28 25 23);
+	}
+
+	.field-control:focus-visible {
+		outline: 3px solid rgb(4 120 87);
+		outline-offset: 3px;
+	}
+
+	.field-control:user-invalid {
+		border-color: rgb(185 28 28);
+		background: rgb(254 242 242);
+	}
+
+	.field-error {
+		display: none;
+		color: rgb(185 28 28);
+		font-size: 0.875rem;
+		line-height: 1.25rem;
+	}
+
+	.field-control:user-invalid + .field-error {
+		display: block;
+	}
+</style>
+
+<script>
+	import { initialiseAccessibleFormValidation } from '../../scripts/accessibleFormValidation';
+
+	document.querySelectorAll<HTMLFormElement>('[data-room-form]').forEach(initialiseAccessibleFormValidation);
+</script>
