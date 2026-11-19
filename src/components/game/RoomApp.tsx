@@ -1,17 +1,19 @@
 import { useCallback, useEffect, useMemo, useRef, useState, type FormEvent } from 'react';
-import { act, auctionAction, clearSession, gameRpc, getSnapshot, propertyAction, readSession, saveSession, tradeAction,
+import { act, auctionAction, cardAction, clearSession, gameRpc, getSnapshot, propertyAction, readSession, saveSession, tradeAction,
   type GameSession, type GameSnapshot } from '../../scripts/gameApi';
 import { connectRoomSocket } from '../../scripts/gameSocket';
 import LobbyPanel from './LobbyPanel';
 import GamePanel from './GamePanel';
 import BoardPanel from './BoardPanel';
 import MarketPanel from './MarketPanel';
+import CardChallengesPanel from './CardChallengesPanel';
 
 export interface GameActions {
   act: (action: string, data?: Record<string, unknown>) => Promise<void>;
   property: (action: string, position: number) => Promise<void>;
   trade: (action: string, data: Record<string, unknown>) => Promise<void>;
   auction: (action: string, data: Record<string, unknown>) => Promise<void>;
+  card: (action: string, data: Record<string, unknown>) => Promise<void>;
   setSpace: (data: Record<string, unknown>) => Promise<void>;
   settings: (data: Record<string, unknown>) => Promise<void>;
   start: () => Promise<void>;
@@ -28,7 +30,7 @@ export default function RoomApp() {
   const [recovery, setRecovery] = useState('');
   const [busy, setBusy] = useState(false);
   const [connection, setConnection] = useState<'connected'|'connecting'|'disconnected'>('disconnected');
-  const [tab, setTab] = useState<'mesa'|'tablero'|'banco'|'negociar'|'historial'>('mesa');
+  const [tab, setTab] = useState<'mesa'|'tablero'|'banco'|'negociar'|'cartas'|'historial'>('mesa');
   const busyLoad = useRef(false);
 
   useEffect(() => {
@@ -83,6 +85,7 @@ export default function RoomApp() {
     property: (action, position) => session ? perform(() => propertyAction(session, action, position)) : Promise.resolve(),
     trade: (action, data) => session ? perform(() => tradeAction(session, action, data)) : Promise.resolve(),
     auction: (action, data) => session ? perform(() => auctionAction(session, action, data)) : Promise.resolve(),
+    card: (action, data) => session ? perform(() => cardAction(session, action, data)) : Promise.resolve(),
     setSpace: (data) => session ? perform(() => gameRpc('game_set_space',
       { p_code: session.code, p_token: session.token, ...data })) : Promise.resolve(),
     settings: (data) => session ? perform(() => gameRpc('game_settings',
@@ -182,7 +185,7 @@ export default function RoomApp() {
           </span>
         </div>
         <nav className="mb-5 flex gap-2 overflow-x-auto pb-2" aria-label="Secciones de la sala">
-          {(['mesa','tablero','banco','negociar','historial'] as const).filter(t => !waiting || (t!=='banco' && t!=='negociar')).map(t =>
+          {(['mesa','tablero','banco','negociar','cartas','historial'] as const).filter(t => !waiting || (t!=='banco' && t!=='negociar' && t!=='cartas')).map(t =>
             <button key={t} type="button" aria-current={tab===t ? 'page' : undefined}
               onClick={() => setTab(t)}
               className={'shrink-0 rounded-xl px-4 py-2 text-sm font-bold capitalize ' +
@@ -200,6 +203,7 @@ export default function RoomApp() {
         {tab==='tablero' && <BoardPanel state={snapshot} actions={actions} disabled={busy}/>}
         {tab==='banco' && !waiting && <GamePanel state={snapshot} actions={actions} disabled={busy} mode="bank"/>}
         {tab==='negociar' && !waiting && <MarketPanel state={snapshot} actions={actions} disabled={busy}/>}
+        {tab==='cartas' && !waiting && <CardChallengesPanel state={snapshot} actions={actions} disabled={busy}/>}
         {tab==='historial' && <section className={panel}>
           <h2 className="text-xl font-black text-emerald-950">Registro de la partida</h2>
           {snapshot.ledger.length>0 && <div className="mt-4">
