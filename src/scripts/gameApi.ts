@@ -100,6 +100,34 @@ export interface GameAuction {
   highBid: number;
   highBidder: string | null;
 }
+export interface CardChallenge {
+  id: number;
+  playerId: string;
+  turn: number;
+  position: number;
+  deck: 'chaman'|'tombola';
+  cardNumber: number|null;
+  title: string|null;
+  instruction: string|null;
+  outcome: 'pending'|'completed'|'failed'|'cancelled';
+  effect: 'none'|'bank_receive'|'bank_pay'|'pay_player'|'collect_player'|'move'|'jail'|'release_jail';
+  amount: number|null;
+  otherPlayerId: string|null;
+  targetPosition: number|null;
+  note: string|null;
+  source: 'dice'|'manual';
+  drawnAt: string;
+  resolvedAt: string|null;
+}
+export interface CardTotals {
+  chaman: number;
+  tombola: number;
+  pending: number;
+  completed: number;
+  failed: number;
+  cancelled: number;
+}
+export interface CardSnapshot { cards:CardChallenge[]; totals:CardTotals }
 export interface GameSnapshot {
   room: RoomInfo;
   me: { id: string; role: 'host'|'player' };
@@ -110,6 +138,8 @@ export interface GameSnapshot {
   rolls: GameRoll[];
   trades: GameTrade[];
   auctions: GameAuction[];
+  cards: CardChallenge[];
+  cardTotals: CardTotals;
 }
 const publicUrl = (import.meta.env.PUBLIC_SUPABASE_URL || '').replace(/\/+$/, '');
 const publicKey = import.meta.env.PUBLIC_SUPABASE_PUBLISHABLE_KEY || '';
@@ -166,8 +196,13 @@ export function clearSession(code: string) { localStorage.removeItem(sessionKey(
 export function money(amount: number): string {
   return 'S/ ' + new Intl.NumberFormat('es-PE', { maximumFractionDigits: 0 }).format(amount);
 }
-export function getSnapshot(session: GameSession) {
-  return gameRpc<GameSnapshot>('game_snapshot', { p_code: session.code, p_token: session.token });
+export async function getSnapshot(session: GameSession): Promise<GameSnapshot> {
+  const params={ p_code: session.code, p_token: session.token };
+  const [room, cards]=await Promise.all([
+    gameRpc<GameSnapshot>('game_snapshot',params),
+    gameRpc<CardSnapshot>('game_card_snapshot',params)
+  ]);
+  return { ...room, cards:cards.cards, cardTotals:cards.totals };
 }
 export function act(session: GameSession, action: string, data: Record<string, unknown> = {}) {
   return gameRpc<{ ok: boolean }>('game_action', {
@@ -187,5 +222,11 @@ export function tradeAction(session: GameSession, action: string, data: Record<s
 export function auctionAction(session: GameSession, action: string, data: Record<string, unknown>) {
   return gameRpc<{ ok: boolean; id?: string }>('game_auction', {
     p_code: session.code, p_token: session.token, p_action: action, p_data: data
+  });
+}
+
+export function cardAction(session: GameSession, action: string, data: Record<string, unknown> = {}) {
+  return gameRpc<{ok:boolean;cardId:number}>('game_card_action',{
+    p_code:session.code,p_token:session.token,p_action:action,p_data:data
   });
 }
