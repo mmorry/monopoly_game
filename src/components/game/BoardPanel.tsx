@@ -61,7 +61,7 @@ export default function BoardPanel({state,actions,disabled}:Props) {
   return <div className="grid gap-5">
     {waiting && <section className="rounded-xl border border-amber-200 bg-amber-50 p-4 text-sm leading-6 text-amber-950">
       <strong>Configuración de tu edición física.</strong> Las 40 posiciones son una plantilla genérica, no una reproducción exacta del tablero peruano.
-      El anfitrión debe copiar nombres, precios y alquileres de las tarjetas reales.
+      El anfitrión debe copiar nombres, precios y alquileres de las tarjetas reales. También puede completar las casillas sin dueño durante la partida.
       {unconfigured>0 && <span className="mt-1 block font-bold">Propiedades sin precio: {unconfigured}.</span>}
     </section>}
     <section className={card}>
@@ -129,7 +129,7 @@ export default function BoardPanel({state,actions,disabled}:Props) {
           </>}
         </>}
       </div>}
-      {host && waiting && <form key={selected.position+'-'+state.room.revision} onSubmit={saveSpace} className="mt-6 grid gap-4 rounded-xl border border-emerald-100 bg-emerald-50 p-4">
+      {host && (waiting || (active && !selected.ownerId)) && <form key={selected.position+'-'+state.room.revision} onSubmit={saveSpace} className="mt-6 grid gap-4 rounded-xl border border-emerald-100 bg-emerald-50 p-4">
         <h3 className="text-lg font-black text-emerald-950">Editar casilla {selected.position}</h3>
         <label className="grid gap-1 text-sm font-semibold">Nombre real de la casilla
           <input className={field} name="name" required maxLength={80} defaultValue={selected.name}/></label>
