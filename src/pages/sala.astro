@@ -1,0 +1,7 @@
+---
+import BaseLayout from '../layouts/BaseLayout.astro';
+import RoomApp from '../components/game/RoomApp';
+---
+<BaseLayout title="Sala de juego | Monopoly Perú" description="Mesa compartida para Monopoly Perú, con banca digital y sincronización en tiempo real.">
+  <RoomApp client:load />
+</BaseLayout>
