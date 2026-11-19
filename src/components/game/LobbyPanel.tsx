@@ -63,7 +63,7 @@ export default function LobbyPanel({state,actions,disabled}:Props) {
         </label>
         <label className="grid gap-1 text-sm font-semibold">Máximo de jugadores
           <select className={field} name="maxPlayers" defaultValue={state.room.maxPlayers} disabled={!isHost}>
-            {[2,3,4,5,6,7,8].map(n=><option key={n} value={n} disabled={n<state.players.length}>{n}</option>)}
+            {[2,3,4,5,6].map(n=><option key={n} value={n} disabled={n<state.players.length}>{n}</option>)}
           </select>
         </label>
         <label className="grid gap-1 text-sm font-semibold">Saldo inicial
