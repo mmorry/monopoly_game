@@ -65,6 +65,12 @@ export default function CardChallengesPanel({state,actions,disabled,compact=fals
    if(action==='move')setNewPosition(String(found.value??0));
    setManualNote('');
  }
+ useEffect(()=>{
+   if(state.room.cardMode!=='virtual' || !pending) return;
+   const found=physicalCards.find(item=>item.deck===pending.deck && item.number===pending.cardNumber);
+   if(!found) return;
+   choosePhysical(found.deck+':'+found.number);
+ },[state.room.cardMode,pending?.id,pending?.cardNumber,physicalCards]);
  const eligible=state.players.filter(p=>p.id!==pending?.playerId && !p.bankrupt);
  const moneyEffect=['bank_receive','bank_pay','pay_player','collect_player'].includes(effect);
  const otherEffect=['pay_player','collect_player'].includes(effect);
@@ -96,7 +102,9 @@ export default function CardChallengesPanel({state,actions,disabled,compact=fals
        <div>
          <p className="text-xs font-black uppercase tracking-widest text-red-700">Monopoly Perú F3182</p>
          <h2 className="mt-1 text-xl font-black text-emerald-950">El Chamán y La Tómbola</h2>
-         <p className="mt-2 text-sm text-stone-600">Se usan las cartas físicas. La aplicación registra resultados y controla la banca, pero no inventa sus instrucciones.</p>
+         <p className="mt-2 text-sm text-stone-600">{state.room.cardMode==='virtual'
+           ? 'Modo virtual: el servidor reparte cada baraja por separado, sin repetir ninguna de sus 16 cartas hasta completar la vuelta. El anfitrión confirma los efectos.'
+           : 'Modo físico: lee la carta del mazo real, selecciónala en la aplicación y registra sus consecuencias.'}</p>
        </div>
        <span className="rounded-xl bg-amber-100 px-3 py-2 text-xs font-bold text-amber-950">16 cartas por baraja</span>
      </div>
@@ -124,8 +132,9 @@ export default function CardChallengesPanel({state,actions,disabled,compact=fals
        Esperando al anfitrión para registrar el reto y sus efectos. No se puede finalizar el turno hasta resolverlo.
      </p>}
      {host && <form key={pending.id} className="mt-5 grid gap-4" onSubmit={resolve}>
-       <label className="grid gap-1 text-sm font-semibold">Seleccionar carta F3182 fotografiada
+       <label className="grid gap-1 text-sm font-semibold">{state.room.cardMode==='virtual'?'Carta virtual asignada por el servidor':'Seleccionar carta F3182 fotografiada'}
          <select aria-label="Tarjeta física F3182" className={input} value={selectedPhysical}
+           disabled={state.room.cardMode==='virtual'}
            onChange={e=>choosePhysical(e.target.value)}>
            <option value="">Selecciona la carta que apareció en el mazo físico</option>
            {catalogForDeck.map(item=><option key={item.number} value={item.deck+':'+item.number}>
@@ -140,8 +149,13 @@ export default function CardChallengesPanel({state,actions,disabled,compact=fals
            gestión manual del anfitrión. No marques la carta como liquidada sin comprobar
            también todos sus pagos, bonificaciones y movimientos en la banca.
          </p>}
+       {state.room.cardMode==='virtual' && <p className="rounded-xl bg-blue-50 p-3 text-sm text-blue-900">
+         Carta asignada automáticamente. Si corresponde mover a la Salida, cobrar a todos o reparar propiedades,
+         verifica que se apliquen todas las consecuencias antes de resolverla.
+       </p>}
        <label className="grid gap-1 text-sm font-semibold">Número de carta (opcional, 1 a 16)
          <input className={input} type="number" min="1" max="16" step="1" value={cardNumber}
+           readOnly={state.room.cardMode==='virtual'}
            onChange={e=>setCardNumber(e.target.value)} placeholder="Si las cartas están numeradas"/></label>
        <label className="grid gap-1 text-sm font-semibold">Nombre o encabezado de la carta
          <input className={input} required minLength={2} maxLength={100} value={title}
