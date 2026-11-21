@@ -18,6 +18,26 @@ export default function GamePanel({ state, actions, disabled, mode }: Props) {
   const current=players.find(p=>p.id===state.room.currentPlayerId);
   const landing=state.spaces.find(s=>s.position===me?.position);
   const lastRoll=state.rolls[0];
+  const [rolling,setRolling]=useState(false);
+  const dieFaces=['','⚀','⚁','⚂','⚃','⚄','⚅'];
+  async function rollDice(data:Record<string,unknown> = {}){
+    setRolling(true);
+    try { await actions.act('roll',data); }
+    finally { window.setTimeout(()=>setRolling(false),650); }
+  }
+  const lastLanding=lastRoll ? state.spaces.find(s=>s.position===lastRoll.to) : null;
+  const lastOwner=state.players.find(p=>p.id===lastLanding?.ownerId);
+  const rolledBy=state.players.find(p=>p.id===lastRoll?.playerId);
+  const colorGroups:Record<string,string>={
+    marrón:'#8b4513',celeste:'#38bdf8',rosa:'#ec4899',naranja:'#f97316',
+    rojo:'#dc2626',amarillo:'#eab308',verde:'#15803d',azul:'#1d4ed8'
+  };
+  const myProperties=state.spaces.filter(s=>s.ownerId===state.me.id);
+  const groupedProperties=Object.entries(myProperties.reduce<Record<string,typeof myProperties>>((groups,s)=>{
+    const group=s.group||'Especial';
+    (groups[group]??=[]).push(s);
+    return groups;
+  },{}));
   const [die1,setDie1]=useState(1);
   const [die2,setDie2]=useState(1);
   const [transferTo,setTransferTo]=useState('');
@@ -89,9 +109,20 @@ export default function GamePanel({ state, actions, disabled, mode }: Props) {
           <h2 className="mt-1 text-2xl font-black text-emerald-950">{current?.alias || 'Partida finalizada'}</h2>
           <p className="mt-1 text-sm text-stone-600">{turn ? 'Es tu turno.' : 'Espera tu turno para lanzar los dados.'}</p>
         </div>
-        {lastRoll && <div className="rounded-xl bg-amber-100 px-4 py-3 text-center">
-          <p className="text-xs font-bold uppercase text-amber-900">Última tirada</p>
-          <p className="text-xl font-black text-amber-950">{lastRoll.d1} + {lastRoll.d2} = {lastRoll.d1+lastRoll.d2}</p>
+        {(lastRoll||rolling) && <div className="rounded-xl bg-amber-100 px-4 py-3 text-center" aria-live="polite">
+          <p className="text-xs font-bold uppercase text-amber-900">{rolling?'Lanzando dados…':'Última tirada'}</p>
+          <div className="my-1 flex justify-center gap-2">
+            {[lastRoll?.d1||1,lastRoll?.d2||1].map((value,i)=>
+              <span key={i} className={'text-5xl leading-none text-amber-950 '+(rolling?'animate-bounce':'')}
+                style={{animationDelay:i?'120ms':'0ms'}} aria-label={'Dado '+(i+1)+': '+value}>
+                {rolling?'⚄':dieFaces[value]}
+              </span>)}
+          </div>
+          {lastRoll && <p className="text-xl font-black text-amber-950">{lastRoll.d1} + {lastRoll.d2} = {lastRoll.d1+lastRoll.d2}</p>}
+          {lastRoll && <p className="text-xs font-bold text-amber-950">
+            Ficha {lastRoll.from} → {lastRoll.to} · Avanza {lastRoll.d1+lastRoll.d2} casillas
+            {lastRoll.d1===lastRoll.d2?' · Dobles':''}
+          </p>}
         </div>}
       </div>
       {turn && !state.room.turnRolled && <div className="mt-6 rounded-xl border border-emerald-200 bg-emerald-50 p-4">
@@ -105,10 +136,10 @@ export default function GamePanel({ state, actions, disabled, mode }: Props) {
                 </select>
               </label>)}
             <button type="button" className={btn} disabled={disabled || !canAct}
-              onClick={()=>void actions.act('roll',{d1:die1,d2:die2})}>Registrar dados</button>
+              onClick={()=>void rollDice({d1:die1,d2:die2})}>Registrar dados</button>
           </div>
         </div> : <button type="button" className={btn+' w-full'} disabled={disabled || !canAct}
-          onClick={()=>void actions.act('roll')}>Lanzar dos dados virtuales</button>}
+          onClick={()=>void rollDice()}>Lanzar dos dados virtuales</button>}
       </div>}
       {turn && state.room.turnRolled && <div className="mt-5 flex flex-wrap items-center gap-3">
         {state.room.pendingAmount>0 && state.room.pendingPlayerId===state.me.id && <div className="w-full rounded-xl border border-red-200 bg-red-50 p-4">
@@ -123,6 +154,14 @@ export default function GamePanel({ state, actions, disabled, mode }: Props) {
           ['property','railroad','utility'].includes(landing.type) && state.room.pendingAmount===0 &&
           <button className={btn} disabled={disabled || !canAct || !me || me.balance<landing.price}
             onClick={()=>void actions.property('buy',landing.position)}>Comprar · {money(landing.price)}</button>}
+        {landing && !landing.ownerId && landing.price!==null && landing.price>0 &&
+          ['property','railroad','utility'].includes(landing.type) && state.room.pendingAmount===0 &&
+          !state.auctions.some(a=>a.position===landing.position) &&
+          <button type="button" className="rounded-xl border-2 border-amber-700 px-4 py-3 text-sm font-bold text-amber-900 disabled:opacity-40"
+            disabled={disabled||!canAct}
+            onClick={()=>void actions.declineProperty()}>
+            No comprar · subastar desde M 10
+          </button>}
         {landing && !landing.ownerId && ['property','railroad','utility'].includes(landing.type) && !landing.price &&
           <p className="text-sm text-amber-900">El precio de esta casilla aún no está configurado por el anfitrión.</p>}
         {state.room.pendingAmount===0 &&
@@ -137,6 +176,14 @@ export default function GamePanel({ state, actions, disabled, mode }: Props) {
       </div>}
     </section>
 
+    {lastRoll && lastLanding && <section role="status" aria-live="polite"
+       className="rounded-xl border-2 border-sky-200 bg-sky-50 p-4 text-sm text-sky-950">
+      <strong>{rolledBy?.alias||'Un jugador'}</strong> cayó en <strong>{lastLanding.name}</strong>
+      {lastOwner ? <> · Propiedad de <strong>{lastOwner.alias}</strong>{lastLanding.mortgaged?' (hipotecada, sin alquiler)':''}.
+        {lastLanding.ownerId!==lastRoll.playerId && !lastLanding.mortgaged
+          ? ' Hay que pagar el alquiler correspondiente.' : ''}</>
+        : ' · Sin propietario.'}
+    </section>}
     <section className={card}>
       <h2 className="mb-4 text-xl font-black text-emerald-950">Jugadores y saldos</h2>
       <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
@@ -169,9 +216,18 @@ export default function GamePanel({ state, actions, disabled, mode }: Props) {
     <section className={card}>
       <h2 className="text-xl font-black text-emerald-950">Tus propiedades</h2>
       <p className="mt-1 text-sm text-stone-600">Para comprar, hipotecar o construir, consulta la pestaña Tablero.</p>
-      <div className="mt-3 flex flex-wrap gap-2">
-        {state.spaces.filter(s=>s.ownerId===state.me.id).map(s=>
-          <span key={s.position} className="rounded-full bg-stone-100 px-3 py-1.5 text-xs font-semibold">{s.name}{s.mortgaged?' · hipotecada':''}{s.level?' · '+s.level+' mejoras':''}</span>)}
+      <div className="mt-3 grid gap-3">
+        {groupedProperties.map(([group,spaces])=><section key={group} className="rounded-xl border border-stone-200 p-3">
+          <h3 className="mb-2 flex items-center gap-2 text-sm font-black text-stone-900">
+            <span className="size-4 rounded-sm" style={{backgroundColor:colorGroups[group]||'#a8a29e'}}/>
+            {group.toUpperCase()} · {spaces.length} propiedades
+          </h3>
+          <div className="flex flex-wrap gap-2">
+            {spaces.map(s=><span key={s.position} className="rounded-full bg-stone-100 px-3 py-1.5 text-xs font-semibold">
+              {s.name}{s.mortgaged?' · hipotecada':''}{s.level?' · '+s.level+' mejoras':''}
+            </span>)}
+          </div>
+        </section>)}
       </div>
       {state.spaces.every(s=>s.ownerId!==state.me.id) && <p className="mt-3 text-sm text-stone-500">Todavía no tienes propiedades.</p>}
       {canAct && me && !me.bankrupt && <button type="button" disabled={disabled} className="mt-4 text-sm font-semibold text-red-700 underline"
