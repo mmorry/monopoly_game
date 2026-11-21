@@ -61,6 +61,13 @@ export default function LobbyPanel({state,actions,disabled}:Props) {
             <option value="physical">Físicos (registro manual)</option>
           </select>
         </label>
+        <label className="grid gap-1 text-sm font-semibold">El Chamán y La Tómbola
+          <select className={field} name="cards" defaultValue={state.room.cardMode} disabled={!isHost}
+            onChange={event=>{ if(isHost) void actions.cardMode(event.target.value as 'physical'|'virtual'); }}>
+            <option value="physical">Cartas físicas: leer y registrar cada carta</option>
+            <option value="virtual">Cartas virtuales: el servidor asigna la siguiente de cada mazo</option>
+          </select>
+        </label>
         <label className="grid gap-1 text-sm font-semibold">Máximo de jugadores
           <select className={field} name="maxPlayers" defaultValue={state.room.maxPlayers} disabled={!isHost}>
             {[2,3,4,5,6].map(n=><option key={n} value={n} disabled={n<state.players.length}>{n}</option>)}
