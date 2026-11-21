@@ -87,11 +87,17 @@ export default function RoomApp() {
           lastSceneRollId.current=newest?.id;
         } else if (newest && lastSceneRollId.current!==newest.id) {
           lastSceneRollId.current=newest.id;
-          const normal=(newest.from+newest.d1+newest.d2)%40===newest.to;
-          const time=normal ? 750+175*(newest.d1+newest.d2)+420 : 1350;
           if (sceneTimer.current) clearTimeout(sceneTimer.current);
-          setSceneMoving(true);
-          sceneTimer.current=setTimeout(()=>{setSceneMoving(false);sceneTimer.current=null;},time);
+          if (newest.playerId===data.me.id) {
+            setSceneMoving(true);
+            sceneTimer.current=setTimeout(()=>{
+              setSceneMoving(false);
+              sceneTimer.current=null;
+            },journeyMs(newest));
+          } else {
+            setSceneMoving(false);
+            sceneTimer.current=null;
+          }
         }
         setSnapshot(data);
         setError('');
