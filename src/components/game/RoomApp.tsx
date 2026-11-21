@@ -337,7 +337,7 @@ export default function RoomApp() {
           </section>
         </div>}
         <nav aria-label="Secciones de la sala" className="fixed inset-x-0 bottom-0 z-30 border-t border-stone-200 bg-white/95 px-2 pt-2 pb-[max(8px,env(safe-area-inset-bottom))] shadow-[0_-8px_30px_#00000012] backdrop-blur-md">
-          <div className="mx-auto grid max-w-xl grid-cols-6 gap-1">
+          <div className={'mx-auto grid max-w-xl gap-1 '+(waiting?'grid-cols-3':'grid-cols-6')}>
             {navItems.filter(t=>!waiting||!['banco','negociar','cartas'].includes(t.id)).map(t=>
               <button key={t.id} type="button" aria-current={tab===t.id?'page':undefined}
                 onClick={()=>setTab(t.id)}
