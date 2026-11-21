@@ -252,3 +252,18 @@ export function cardAction(session: GameSession, action: string, data: Record<st
 export function getF3182Titles() {
   return gameRpc<F3182Title[]>('game_f3182_titles', {});
 }
+
+/** F3182 physical card order is internal, not printed on the cards. */
+export interface F3182PhysicalCard {
+  deck:'chaman'|'tombola';
+  number:number;
+  title:string;
+  instruction:string;
+  effect:string;
+  value:number|null;
+  secondary:number|null;
+  hold:boolean;
+}
+export function getF3182Cards() {
+  return gameRpc<F3182PhysicalCard[]>('game_f3182_cards',{p_deck:null});
+}
