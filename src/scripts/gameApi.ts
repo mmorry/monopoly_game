@@ -137,6 +137,10 @@ export interface CardChallenge {
   source: 'dice'|'manual';
   drawnAt: string;
   revealedAt: string|null;
+  arrivalStatus: 'pending'|'auction'|'special_dice'|'resolved'|null;
+  specialDicePending: boolean;
+  specialDie1: number|null;
+  specialDie2: number|null;
   resolvedAt: string|null;
 }
 export interface CardTotals {
