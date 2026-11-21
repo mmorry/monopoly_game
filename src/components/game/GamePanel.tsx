@@ -33,6 +33,12 @@ export default function GamePanel({ state, actions, disabled, mode, sceneMoving=
     rojo:'#dc2626',amarillo:'#eab308',verde:'#15803d',azul:'#1d4ed8'
   };
   const myProperties=state.spaces.filter(s=>s.ownerId===state.me.id);
+  const myMovedCard=state.cards.find(card=>card.playerId===state.me.id &&
+    card.outcome==='completed' && card.targetPosition!==null && card.resolvedAt!==null);
+  const cardMove=myMovedCard && myMovedCard.targetPosition!==null ? {
+    id:myMovedCard.id,from:myMovedCard.position,to:myMovedCard.targetPosition,
+    number:myMovedCard.cardNumber
+  }:undefined;
   const [die1,setDie1]=useState(1);
   const [die2,setDie2]=useState(1);
   const [transferTo,setTransferTo]=useState('');
@@ -106,7 +112,7 @@ export default function GamePanel({ state, actions, disabled, mode, sceneMoving=
         </p>
       </div>
       <div className="mt-5">
-        <AnimatedTurnScene spaces={state.spaces} players={players} player={me} roll={lastRoll} rolling={rolling}/>
+        <AnimatedTurnScene spaces={state.spaces} players={players} player={me} roll={lastRoll} rolling={rolling} cardMove={cardMove}/>
       </div>
       {!rolling&&!sceneMoving&&recentSpace && <section className="mt-5" aria-label="Casilla de llegada">
         <h3 className="mb-3 text-sm font-black text-emerald-950">Tu casilla actual</h3>
