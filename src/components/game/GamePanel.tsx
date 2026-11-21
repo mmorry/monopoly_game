@@ -5,7 +5,7 @@ import CardChallengesPanel from './CardChallengesPanel';
 interface Props { state: GameSnapshot; actions: GameActions; disabled: boolean; mode?: 'bank' }
 const field='min-h-11 w-full rounded-xl border-2 border-stone-300 bg-white px-3 py-2 text-base text-stone-950 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-emerald-700';
 const btn='rounded-xl bg-emerald-700 px-4 py-3 text-sm font-black text-white hover:bg-emerald-800 disabled:cursor-not-allowed disabled:opacity-40';
-const card='rounded-2xl border border-stone-200 bg-white p-5 shadow-sm sm:p-6';
+const card='min-w-0 rounded-2xl border border-stone-200 bg-white p-5 shadow-sm sm:p-6';
 function sortedPlayers(state: GameSnapshot) {
   return [...state.players].sort((a,b) => (a.order??99)-(b.order??99) || (a.role==='host'?-1:1));
 }
@@ -94,7 +94,7 @@ export default function GamePanel({ state, actions, disabled, mode }: Props) {
 
   if(mode==='bank') return <div className="space-y-5">{bankPanel}</div>;
 
-  return <div className="grid gap-5">
+  return <div className="grid min-w-0 w-full gap-5">
     <style>{`@keyframes monopoly-progress {from{width:0%} to{width:100%}}
       @keyframes monopoly-marker {from{left:0%} to{left:calc(100% - 18px)}}`}</style>
     {state.cards.some(challenge=>challenge.outcome==='pending') &&
@@ -201,11 +201,11 @@ export default function GamePanel({ state, actions, disabled, mode }: Props) {
       </div>}
     </section>
 
-    {myProperties.length>0 && <section className={card}>
+    {myProperties.length>0 && <section className={card+' overflow-hidden'}>
       <h2 className="mb-3 text-base font-black text-emerald-950">Mis propiedades</h2>
-      <div className="-mx-1 flex snap-x gap-3 overflow-x-auto px-1 pb-2">
+      <div className="flex w-full min-w-0 max-w-full snap-x gap-3 overflow-x-auto overscroll-x-contain pb-2">
         {myProperties.map(s=><article key={s.position}
-          className="min-w-[150px] max-w-[180px] flex-1 shrink-0 snap-start overflow-hidden rounded-2xl border border-stone-200 bg-white shadow-sm">
+          className="w-[158px] flex-none snap-start overflow-hidden rounded-2xl border border-stone-200 bg-white shadow-sm">
           <div className="h-2.5" style={{backgroundColor:colorGroups[s.group||'']||'#64748b'}}/>
           <div className="p-3">
             <p className="text-[10px] font-bold uppercase text-stone-500">{s.group||'Especial'}</p>
