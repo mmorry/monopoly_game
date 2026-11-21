@@ -7,6 +7,8 @@ interface Props {
   player?: GamePlayer;
   roll?: GameRoll;
   rolling: boolean;
+  playerId: string;
+  playerPosition: number;
 }
 const palette: Record<string,string> = {
   'marrón':'#874b30','celeste':'#42b7dc','rosa':'#dd4aa1','naranja':'#ec7a31',
@@ -118,7 +120,7 @@ export default function AnimatedTurnScene({spaces,players,player,roll,rolling}:P
     },DICE_REVEAL_MS));
     return ()=>timers.forEach(clearTimeout);
   },[roll?.id,roll?.from,roll?.to,normal,total]);
-  // Avoid replaying an old roll when a user reloads the page or reconnects.
+  // Old throws do not override the local player's current location.
   const activePosition=roll && roll.id===rollId && phase!=='idle' ? step : (player?.position??0);
   const actor=player;
   const actorIndex=players.findIndex(p=>p.id===player?.id);
