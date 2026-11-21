@@ -7,6 +7,7 @@ interface Props {
   player?: GamePlayer;
   roll?: GameRoll;
   rolling: boolean;
+  cardMove?: {id:number;from:number;to:number;number:number|null};
 }
 const palette: Record<string,string> = {
   'marrón':'#874b30','celeste':'#42b7dc','rosa':'#dd4aa1','naranja':'#ec7a31',
@@ -16,6 +17,9 @@ export const DICE_REVEAL_MS=1450;
 export const STEP_MS=300;
 export const SCENE_SETTLE_MS=420;
 export function journeyMs(roll:GameRoll){const distance=((roll.from+roll.d1+roll.d2)%40)===roll.to?roll.d1+roll.d2:1;return DICE_REVEAL_MS+distance*STEP_MS+SCENE_SETTLE_MS;}
+export const CARD_STEP_MS=170;
+export const CARD_INTRO_MS=440;
+export function cardJourneyMs(from:number,to:number,number:number|null){const backwards=number===1;const count=backwards?((from-to+40)%40):((to-from+40)%40);return CARD_INTRO_MS+count*CARD_STEP_MS+SCENE_SETTLE_MS;}
 const pawnColors=['#047857','#be123c','#2563eb','#7c3aed','#c2410c','#0f766e'];
 function positive(n:number){return ((n%40)+40)%40}
 function tileSymbol(space:GameSpace | undefined){
@@ -92,8 +96,9 @@ function Die({value,spin,index}:{value:number;spin:boolean;index:number}){
   </div>;
 }
 
-export default function AnimatedTurnScene({spaces,players,player,roll,rolling}:Props){
+export default function AnimatedTurnScene({spaces,players,player,roll,rolling,cardMove}:Props){
   const firstRollRef=useRef(roll?.id);
+  const firstCardRef=useRef(cardMove?.id);
   const [phase,setPhase]=useState<'idle'|'dice'|'travel'>('idle');
   const [step,setStep]=useState(player?.position??0);
   const [rollId,setRollId]=useState(roll?.id);
@@ -118,8 +123,25 @@ export default function AnimatedTurnScene({spaces,players,player,roll,rolling}:P
     },DICE_REVEAL_MS));
     return ()=>timers.forEach(clearTimeout);
   },[roll?.id,roll?.from,roll?.to,normal,total]);
+  useEffect(()=>{
+    if(!cardMove || firstCardRef.current===cardMove.id)return;
+    firstCardRef.current=cardMove.id;
+    const backwards=cardMove.number===1;
+    const count=backwards?positive(cardMove.from-cardMove.to):positive(cardMove.to-cardMove.from);
+    setStep(cardMove.from);
+    setPhase('travel');
+    const timers:ReturnType<typeof setTimeout>[]=[];
+    for(let i=1;i<=count;i++){
+      timers.push(setTimeout(()=>{
+        setStep(positive(cardMove.from+(backwards?-i:i)));
+        if(i===count)setPhase('idle');
+      },CARD_INTRO_MS+i*CARD_STEP_MS));
+    }
+    if(count===0)timers.push(setTimeout(()=>setPhase('idle'),CARD_INTRO_MS));
+    return ()=>timers.forEach(clearTimeout);
+  },[cardMove?.id,cardMove?.from,cardMove?.to,cardMove?.number]);
   // Old throws do not override the local player's current location.
-  const activePosition=roll && roll.id===rollId && phase!=='idle' ? step : (player?.position??0);
+  const activePosition=phase!=='idle' ? step : (player?.position??0);
   const actor=player;
   const actorIndex=players.findIndex(p=>p.id===player?.id);
   const actorColor=pawnColors[Math.max(0,actorIndex)%pawnColors.length];
