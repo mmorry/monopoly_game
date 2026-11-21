@@ -123,7 +123,12 @@ export default function BoardPanel({state,actions,disabled}:Props) {
             {s.mortgaged && <span className="mt-1 block text-[11px] font-bold text-red-700">Hipotecada</span>}
             {s.level>0 && <span className="mt-1 block text-[11px] font-semibold text-emerald-700">{s.level===5?'Hotel':s.level+' casas'}</span>}
             {occupants.length>0 && <div className="mt-2 flex flex-wrap gap-1">
-              {occupants.map(p=><span key={p.id} title={p.alias} className="grid size-6 place-items-center rounded-full bg-emerald-700 text-[10px] font-black text-white">{p.alias[0]?.toUpperCase()}</span>)}
+              {occupants.map(p=><span key={p.id} title={p.alias+' · ficha en casilla '+s.position}
+                aria-label={p.alias+' en '+s.name}
+                className="grid size-7 place-items-center rounded-full border-2 border-white text-[10px] font-black text-white shadow-md"
+                style={{backgroundColor:['#047857','#b91c1c','#1d4ed8','#7c3aed','#a16207','#be185d'][Math.max(state.players.findIndex(item=>item.id===p.id),0)%6]}}>
+                {p.alias.slice(0,2).toUpperCase()}
+              </span>)}
             </div>}
           </button>;
         })}
@@ -168,8 +173,12 @@ export default function BoardPanel({state,actions,disabled}:Props) {
             onClick={()=>void actions.property('buy',selected.position)}>Comprar</button>}
         {owned && <>
           {selected.mortgaged
-            ? <button className={btn} disabled={disabled} onClick={()=>void actions.property('unmortgage',selected.position)}>Levantar hipoteca</button>
-            : <button className={btn} disabled={disabled} onClick={()=>void actions.property('mortgage',selected.position)}>Hipotecar</button>}
+            ? <button className={btn} disabled={disabled} onClick={()=>void actions.property('unmortgage',selected.position)}>
+                Deshipotecar · {money(Math.ceil((selected.mortgage??Math.floor((selected.price??0)/2))*1.1))}
+              </button>
+            : <button className={btn} disabled={disabled} onClick={()=>void actions.property('mortgage',selected.position)}>
+                Hipotecar · recibir {money(selected.mortgage??Math.floor((selected.price??0)/2))}
+              </button>}
           {selected.type==='property' && <>
             <button className={btn} disabled={disabled || selected.level>=5} onClick={()=>void actions.property('build',selected.position)}>Construir casa/hotel</button>
             <button className={btn} disabled={disabled || selected.level===0} onClick={()=>void actions.property('sell_building',selected.position)}>Vender construcción</button>
