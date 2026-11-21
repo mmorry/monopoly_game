@@ -90,10 +90,17 @@ export default function BoardPanel({state,actions,disabled}:Props) {
   }
 
   return <div className="grid gap-5">
-    {waiting && <section className="rounded-xl border border-amber-200 bg-amber-50 p-4 text-sm leading-6 text-amber-950">
-      <strong>Configuración de tu edición física.</strong> Las 40 posiciones son una plantilla genérica, no una reproducción exacta del tablero peruano.
-      Los alquileres y costos de las 28 tarjetas F3182 ya están cargados; asigna cada una a su posición física. Solo faltan el orden del tablero, precios de compra e hipotecas.
-      {unconfigured>0 && <span className="mt-1 block font-bold">Propiedades sin precio: {unconfigured}.</span>}
+    {waiting && <section className="rounded-xl border border-emerald-200 bg-emerald-50 p-4 text-sm leading-6 text-emerald-950">
+      <strong>Tablero oficial Monopoly Perú F3182.</strong> Las 40 casillas, los 28 precios de compra,
+      alquileres y costos de construcción ya están incorporados. Los títulos se colocan automáticamente
+      en su posición real al crear una sala.
+      {unconfigured>0 && <span className="mt-1 block font-bold">
+        Esta sala tiene {unconfigured} propiedades sin precio: si se creó antes de la actualización,
+        usa «Restaurar tablero oficial» antes de comenzar.
+      </span>}
+      {host && <button type="button" disabled={disabled}
+        className="mt-3 rounded-xl border border-emerald-700 px-4 py-2 text-sm font-bold text-emerald-900 disabled:opacity-50"
+        onClick={()=>void actions.restoreF3182Board()}>Restaurar tablero oficial F3182</button>}
     </section>}
     <section className={card}>
       <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
@@ -150,7 +157,8 @@ export default function BoardPanel({state,actions,disabled}:Props) {
         Área Natural Protegida: 4 veces los dados si se posee una; 10 veces si se poseen ambas.
       </p>}
       {selected.buildCost!==null && <p className="mt-3 text-sm">
-        Construcción: {money(selected.buildCost)} · Hipoteca: {selected.mortgage===null?'Valor no verificado':money(selected.mortgage)}
+        Construcción: {money(selected.buildCost)} · Hipoteca: {selected.mortgage!==null ? money(selected.mortgage)+' (tarjeta verificada)' :
+           selected.price!==null ? money(selected.price/2)+' (50% del precio; reverso no fotografiado)' : 'Sin precio de referencia'}
       </p>}
       {selected.mortgaged && <p className="mt-2 font-bold text-red-700">Esta propiedad está hipotecada y no cobra alquiler.</p>}
       {active && ['property','railroad','utility'].includes(selected.type) && <div className="mt-5 flex flex-wrap gap-2">
@@ -176,8 +184,8 @@ export default function BoardPanel({state,actions,disabled}:Props) {
         <div>
           <h3 className="text-lg font-black text-emerald-950">Asignar tarjeta oficial F3182</h3>
           <p className="mt-1 text-sm text-stone-700">
-            {titleCards.length} de 28 títulos cargados. Selecciona la tarjeta que ocupa esta posición en tu tablero físico.
-            El nombre, el grupo, los alquileres y el costo de construcción se aplican automáticamente.
+            {titleCards.length} de 28 títulos oficiales disponibles. Las salas nuevas ya vienen configuradas.
+            Utiliza esta opción únicamente si quieres corregir o personalizar una casilla sin dueño.
           </p>
           {catalogError && <p role="alert" className="mt-2 text-sm text-red-700">{catalogError}</p>}
         </div>
@@ -203,16 +211,16 @@ export default function BoardPanel({state,actions,disabled}:Props) {
         <div className="grid gap-3 sm:grid-cols-2">
           <label className="grid gap-1 text-sm font-semibold">Precio de compra (M)
             <input className={field} name="purchasePrice" type="number" min="1" max="10000000"
-              step="1" placeholder="Pendiente: ver tablero" defaultValue={selected.price??''}/>
+              step="1" placeholder="Precio del tablero" defaultValue={selected.price??selectedTitle?.price??''}/>
           </label>
           <label className="grid gap-1 text-sm font-semibold">Hipoteca (M)
             <input className={field} name="mortgageValue" type="number" min="1" max="10000000"
-              step="1" placeholder="Pendiente: ver tablero" defaultValue={selected.mortgage??''}/>
+              step="1" placeholder="Reverso de tarjeta (opcional)" defaultValue={selected.mortgage??selectedTitle?.mortgage??''}/>
           </label>
         </div>
         <p className="text-xs text-amber-800">
-          Estos dos valores no aparecen en las fotos enviadas. Déjalos vacíos hasta verificar el tablero;
-          no se asignará un precio supuesto.
+          Los precios de compra provienen del tablero fotografiado. Doce hipotecas fueron verificadas con sus reversos;
+          las demás se calculan como el 50% del precio al hipotecar, según la regla de juego.
         </p>
         <button disabled={disabled||!selectedTitle} className={btn} type="submit">
           Aplicar tarjeta y alquileres
@@ -224,7 +232,7 @@ export default function BoardPanel({state,actions,disabled}:Props) {
           <input className={field} name="name" required maxLength={80} defaultValue={selected.name} list="verified-f3182-landmarks"/>
           <datalist id="verified-f3182-landmarks">{titleCards.map(t=><option key={t.key} value={t.name}/>)}</datalist>
         </label>
-        <p className="text-xs text-stone-600">Alternativa manual: puedes editar esta casilla, pero perderá la vinculación a la tarjeta verificada. Usa el selector superior para cargar los alquileres exactos.</p>
+        <p className="text-xs text-stone-600">Configuración avanzada: editar manualmente reemplaza los datos oficiales de esta casilla y elimina la referencia a la tarjeta F3182.</p>
         <div className="grid gap-4 sm:grid-cols-2">
           <label className="grid gap-1 text-sm font-semibold">Tipo
             <select className={field} name="type" defaultValue={selected.type}>
