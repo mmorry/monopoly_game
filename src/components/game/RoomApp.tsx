@@ -7,6 +7,7 @@ import GamePanel from './GamePanel';
 import BoardPanel from './BoardPanel';
 import MarketPanel from './MarketPanel';
 import CardChallengesPanel from './CardChallengesPanel';
+import VirtualCardModal from './VirtualCardModal';
 
 export interface GameActions {
   act: (action: string, data?: Record<string, unknown>) => Promise<void>;
@@ -14,6 +15,8 @@ export interface GameActions {
   trade: (action: string, data: Record<string, unknown>) => Promise<void>;
   auction: (action: string, data: Record<string, unknown>) => Promise<void>;
   card: (action: string, data: Record<string, unknown>) => Promise<void>;
+  finishVirtualCard: (id:number) => Promise<void>;
+  useJailPass: (deck:'chaman'|'tombola') => Promise<void>;
   declineProperty: () => Promise<void>;
   cardMode: (mode: 'physical'|'virtual') => Promise<void>;
   setSpace: (data: Record<string, unknown>) => Promise<void>;
@@ -32,6 +35,8 @@ export default function RoomApp() {
   const [error, setError] = useState('');
   const [message, setMessage] = useState('');
   const [recovery, setRecovery] = useState('');
+  const [resumeToken,setResumeToken]=useState('');
+  const [accessCopied,setAccessCopied]=useState(false);
   const [busy, setBusy] = useState(false);
   const [connection, setConnection] = useState<'connected'|'connecting'|'disconnected'>('disconnected');
   const [tab, setTab] = useState<'mesa'|'tablero'|'banco'|'negociar'|'cartas'|'historial'>('mesa');
@@ -86,7 +91,7 @@ export default function RoomApp() {
     setMessage('');
     try {
       await operation();
-      setMessage('Operación registrada correctamente.');
+      // All successful actions are visible in room state, no redundant success alert.
       await refresh();
     } catch (cause) {
       setError(cause instanceof Error ? cause.message : 'La operación no pudo completarse.');
@@ -101,6 +106,12 @@ export default function RoomApp() {
     trade: (action, data) => session ? perform(() => tradeAction(session, action, data)) : Promise.resolve(),
     auction: (action, data) => session ? perform(() => auctionAction(session, action, data)) : Promise.resolve(),
     card: (action, data) => session ? perform(() => cardAction(session, action, data)) : Promise.resolve(),
+    finishVirtualCard: (id) => session ? perform(() => gameRpc('game_finish_virtual_card',{
+      p_code:session.code,p_token:session.token,p_card_id:id
+    })) : Promise.resolve(),
+    useJailPass: (deck) => session ? perform(() => gameRpc('game_use_jail_pass',{
+      p_code:session.code,p_token:session.token,p_deck:deck
+    })) : Promise.resolve(),
     declineProperty: () => session ? perform(() => gameRpc('game_decline_property',{
       p_code:session.code,p_token:session.token
     })) : Promise.resolve(),
@@ -159,6 +170,33 @@ export default function RoomApp() {
     } finally { setBusy(false); }
   }
 
+  async function restorePlayerSession(event:FormEvent<HTMLFormElement>){
+    event.preventDefault();
+    const token=resumeToken.trim().toLowerCase();
+    if(!code||!/^[a-f0-9]{64}$/.test(token)){
+      setError('La clave de jugador debe contener 64 caracteres hexadecimales.');
+      return;
+    }
+    setBusy(true);
+    setError('');
+    try{
+      const result=await gameRpc<GameSnapshot>('game_snapshot',{p_code:code,p_token:token});
+      const restored:GameSession={code,token,topic:result.room.topic};
+      saveSession(restored);
+      setSession(restored);
+      setResumeToken('');
+    }catch(e){
+      setError(e instanceof Error?e.message:'No se pudo recuperar el acceso.');
+    }finally{setBusy(false);}
+  }
+  async function copyPlayerAccess(){
+    if(!session)return;
+    try{
+      await navigator.clipboard.writeText(session.token);
+      setAccessCopied(true);
+    }catch{setError('No se pudo copiar la clave. Revisa los permisos del navegador.');}
+  }
+
   async function shareRoom() {
     const url = window.location.origin + '/unirse?codigo=' + encodeURIComponent(code);
     try {
@@ -194,6 +232,18 @@ export default function RoomApp() {
         <h1 className="text-2xl font-black text-emerald-950">Recuperar acceso</h1>
         <p className="mt-3 text-sm text-stone-600">Esta sala no tiene una sesión guardada en este navegador. Puedes unirte como jugador o recuperar tu sesión de anfitrión.</p>
         <a className="mt-4 inline-flex rounded-xl bg-emerald-700 px-5 py-3 font-bold text-white" href={'/unirse?codigo=' + encodeURIComponent(code)}>Unirme como jugador</a>
+        <form onSubmit={(event) => void restorePlayerSession(event)} className="mt-6 grid gap-3">
+          <label className="font-semibold text-emerald-950" htmlFor="player-key">
+            Regresar a mi partida (jugador)
+          </label>
+          <p className="text-xs text-stone-600">El ingreso de nuevos jugadores se cierra al iniciar, pero puedes recuperar tu ficha con la clave privada guardada, incluso en otro dispositivo.</p>
+          <textarea id="player-key" value={resumeToken} onChange={e=>setResumeToken(e.target.value)}
+            className="min-h-20 w-full rounded-xl border-2 border-stone-300 p-3 font-mono text-sm"
+            required spellCheck={false} placeholder="Clave privada de jugador (64 caracteres)"/>
+          <button disabled={busy} className="rounded-xl bg-emerald-800 px-5 py-3 font-bold text-white disabled:opacity-60">
+            Recuperar mi ficha
+          </button>
+        </form>
         <form onSubmit={(event) => void recover(event)} className="mt-8 grid gap-3">
           <label className="font-semibold text-emerald-950" htmlFor="recovery-key">Clave de recuperación del anfitrión</label>
           <textarea id="recovery-key" value={recovery} onChange={event => setRecovery(event.target.value)}
@@ -209,6 +259,10 @@ export default function RoomApp() {
             <p className="text-xs font-black uppercase tracking-wider text-emerald-700">{waiting ? 'Preparación de sala' : finished ? 'Partida terminada' : 'Partida en curso'}</p>
             <h1 className="text-2xl font-black text-emerald-950 sm:text-3xl">{snapshot.room.name || 'Mesa de Monopoly Perú'}</h1>
             <p className="mt-1 text-sm text-stone-600">Juegas como <strong>{me.alias}</strong>{host ? ' · Anfitrión' : ''}</p>
+            <button type="button" className="mt-2 text-xs font-semibold text-emerald-800 underline"
+              onClick={()=>void copyPlayerAccess()}>
+              {accessCopied?'Clave de acceso copiada':'Guardar mi clave de acceso / reingreso'}
+            </button>
           </div>
           <span className={'rounded-full px-3 py-1.5 text-xs font-bold ' +
             (connection==='connected' ? 'bg-emerald-100 text-emerald-900' : 'bg-stone-200 text-stone-700')}>
@@ -245,6 +299,7 @@ export default function RoomApp() {
         {tab==='banco' && !waiting && <GamePanel state={snapshot} actions={actions} disabled={busy} mode="bank"/>}
         {tab==='negociar' && !waiting && <MarketPanel state={snapshot} actions={actions} disabled={busy}/>}
         {tab==='cartas' && !waiting && <CardChallengesPanel state={snapshot} actions={actions} disabled={busy}/>}
+        <VirtualCardModal state={snapshot} actions={actions} disabled={busy} error={error}/>
         {tab==='historial' && <section className={panel}>
           <h2 className="text-xl font-black text-emerald-950">Registro de la partida</h2>
           {snapshot.ledger.length>0 && <div className="mt-4">
