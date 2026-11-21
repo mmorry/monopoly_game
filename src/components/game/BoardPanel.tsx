@@ -1,5 +1,5 @@
 import { useEffect, useState, type FormEvent } from 'react';
-import { gameRpc, money, type GameSnapshot, type GameSpace, type SpaceType } from '../../scripts/gameApi';
+import { getF3182Titles, money, type F3182Title, type GameSnapshot, type SpaceType } from '../../scripts/gameApi';
 import type { GameActions } from './RoomApp';
 interface Props { state: GameSnapshot; actions: GameActions; disabled: boolean }
 const card='rounded-2xl border border-stone-200 bg-white p-5 shadow-sm sm:p-6';
@@ -20,18 +20,26 @@ const numberOrNull = (value: FormDataEntryValue | null) => {
   return raw==='' ? null : Number(raw);
 };
 export default function BoardPanel({state,actions,disabled}:Props) {
-  const [verifiedNames,setVerifiedNames]=useState<string[]>([]);
+  const [titleCards,setTitleCards]=useState<F3182Title[]>([]);
+  const [catalogError,setCatalogError]=useState('');
+  const [chosenTitle,setChosenTitle]=useState('');
   useEffect(() => {
-    let active=true;
-    void gameRpc<{items:{name:string;kind:string}[]}>('game_edition_reference',{p_sku:'F3182'})
-      .then(reference=>{
-        if(active) setVerifiedNames(reference.items.filter(item=>item.kind==='landmark').map(item=>item.name));
-      })
-      .catch(()=>{});
-    return ()=>{active=false;};
+    let subscribed=true;
+    void getF3182Titles().then(cards=>{
+      if(subscribed) setTitleCards(cards);
+    }).catch(error=>{
+      if(subscribed) setCatalogError(error instanceof Error ? error.message : 'Catálogo no disponible');
+    });
+    return ()=>{subscribed=false;};
   },[]);
   const [selection,setSelection]=useState(0);
   const selected=state.spaces.find(s=>s.position===selection);
+  const compatibleTitles=titleCards.filter(t=>t.kind===selected?.type &&
+    (t.kind!=='property' || t.group===selected?.group));
+  const selectedTitle=titleCards.find(t=>t.key===chosenTitle);
+  useEffect(() => {
+    setChosenTitle(titleCards.find(t=>t.name===selected?.name)?.key||'');
+  },[selected?.name,titleCards]);
   const waiting=state.room.status==='waiting';
   const active=state.room.status==='active';
   const host=state.me.role==='host';
@@ -41,6 +49,19 @@ export default function BoardPanel({state,actions,disabled}:Props) {
   const unconfigured=state.spaces.filter(s=>['property','railroad','utility'].includes(s.type) && !s.price).length;
   const owned=selected?.ownerId===mine;
   const holder=state.players.find(p=>p.id===selected?.ownerId);
+
+  function assignVerifiedTitle(event:FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+    if(!selectedTitle || selectedTitle.kind!==selected?.type ||
+       (selectedTitle.kind==='property' && selectedTitle.group!==selected.group)) return;
+    const form=new FormData(event.currentTarget);
+    void actions.assignF3182Title({
+      p_position:selection,
+      p_title_key:selectedTitle.key,
+      p_purchase_price:numberOrNull(form.get('purchasePrice')),
+      p_mortgage_value:numberOrNull(form.get('mortgageValue'))
+    });
+  }
 
   function saveSpace(event:FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -71,7 +92,7 @@ export default function BoardPanel({state,actions,disabled}:Props) {
   return <div className="grid gap-5">
     {waiting && <section className="rounded-xl border border-amber-200 bg-amber-50 p-4 text-sm leading-6 text-amber-950">
       <strong>Configuración de tu edición física.</strong> Las 40 posiciones son una plantilla genérica, no una reproducción exacta del tablero peruano.
-      El anfitrión debe copiar nombres, precios y alquileres de las tarjetas reales. También puede completar las casillas sin dueño durante la partida.
+      Los alquileres y costos de las 28 tarjetas F3182 ya están cargados; asigna cada una a su posición física. Solo faltan el orden del tablero, precios de compra e hipotecas.
       {unconfigured>0 && <span className="mt-1 block font-bold">Propiedades sin precio: {unconfigured}.</span>}
     </section>}
     <section className={card}>
@@ -117,12 +138,20 @@ export default function BoardPanel({state,actions,disabled}:Props) {
         </div>
       </div>
       {selected.rents && <div className="mt-4">
-        <p className="text-sm font-bold text-emerald-950">Alquiler base / 1–4 casas / hotel</p>
+        <p className="text-sm font-bold text-emerald-950">{selected.type==='railroad'?'Alquiler según cantidad de refugios':'Alquiler base / 1–4 casas / hotel'}</p>
         <div className="mt-2 flex flex-wrap gap-2">
-          {selected.rents.map((n,i)=><span key={i} className="rounded-lg bg-stone-100 px-2 py-1 text-xs font-semibold">{i===0?'Base':i===5?'Hotel':i+' casa(s)'}: {money(n)}</span>)}
+          {(selected.type==='railroad'?selected.rents.slice(0,4):selected.rents).map((n,i)=>
+            <span key={i} className="rounded-lg bg-stone-100 px-2 py-1 text-xs font-semibold">
+              {selected.type==='railroad'?i+1+' refugio(s)':i===0?'Base':i===5?'Hotel':i+' casa(s)'}: {money(n)}
+            </span>)}
         </div>
       </div>}
-      {selected.buildCost!==null && <p className="mt-3 text-sm">Construcción: {money(selected.buildCost)} · Hipoteca: {money(selected.mortgage??Math.floor((selected.price||0)/2))}</p>}
+      {selected.type==='utility' && <p className="mt-3 rounded-lg bg-stone-100 p-3 text-sm">
+        Área Natural Protegida: 4 veces los dados si se posee una; 10 veces si se poseen ambas.
+      </p>}
+      {selected.buildCost!==null && <p className="mt-3 text-sm">
+        Construcción: {money(selected.buildCost)} · Hipoteca: {selected.mortgage===null?'Valor no verificado':money(selected.mortgage)}
+      </p>}
       {selected.mortgaged && <p className="mt-2 font-bold text-red-700">Esta propiedad está hipotecada y no cobra alquiler.</p>}
       {active && ['property','railroad','utility'].includes(selected.type) && <div className="mt-5 flex flex-wrap gap-2">
         {!selected.ownerId && selected.price!==null && selected.price>0 && myTurn && state.room.turnRolled &&
@@ -139,13 +168,63 @@ export default function BoardPanel({state,actions,disabled}:Props) {
           </>}
         </>}
       </div>}
+      {host && (waiting || (active && !selected.ownerId)) &&
+        ['property','railroad','utility'].includes(selected.type) && <form
+        key={'f3182-'+selected.position+'-'+state.room.revision}
+        onSubmit={assignVerifiedTitle}
+        className="mt-6 grid gap-4 rounded-xl border-2 border-emerald-300 bg-white p-4">
+        <div>
+          <h3 className="text-lg font-black text-emerald-950">Asignar tarjeta oficial F3182</h3>
+          <p className="mt-1 text-sm text-stone-700">
+            {titleCards.length} de 28 títulos cargados. Selecciona la tarjeta que ocupa esta posición en tu tablero físico.
+            El nombre, el grupo, los alquileres y el costo de construcción se aplican automáticamente.
+          </p>
+          {catalogError && <p role="alert" className="mt-2 text-sm text-red-700">{catalogError}</p>}
+        </div>
+        <label className="grid gap-1 text-sm font-semibold">Tarjeta de esta casilla
+          <select required value={chosenTitle} className={field}
+            onChange={event=>setChosenTitle(event.target.value)}>
+            <option value="">Selecciona la tarjeta física</option>
+            {compatibleTitles.map(t=><option key={t.key} value={t.key}
+              disabled={state.spaces.some(s=>s.position!==selected.position && s.name===t.name)}>
+              {t.name}{t.department?' · '+t.department:''}
+            </option>)}
+          </select>
+        </label>
+        {selectedTitle && <div className="rounded-xl bg-emerald-50 p-3 text-sm">
+          <p className="font-bold text-emerald-950">{selectedTitle.name}</p>
+          {selectedTitle.kind==='property' &&
+            <p className="mt-1 text-stone-700">Alquiler base: {money(selectedTitle.rents?.[0]||0)}
+              {' · '}Con grupo: {money(selectedTitle.groupRent||0)}
+              {' · '}Casa/hotel: {money(selectedTitle.buildCost||0)}</p>}
+          {selectedTitle.kind==='railroad' && <p>Alquiler según refugios: M 25 / 50 / 100 / 200</p>}
+          {selectedTitle.kind==='utility' && <p>4× dados (una área) / 10× dados (ambas)</p>}
+        </div>}
+        <div className="grid gap-3 sm:grid-cols-2">
+          <label className="grid gap-1 text-sm font-semibold">Precio de compra (M)
+            <input className={field} name="purchasePrice" type="number" min="1" max="10000000"
+              step="1" placeholder="Pendiente: ver tablero" defaultValue={selected.price??''}/>
+          </label>
+          <label className="grid gap-1 text-sm font-semibold">Hipoteca (M)
+            <input className={field} name="mortgageValue" type="number" min="1" max="10000000"
+              step="1" placeholder="Pendiente: ver tablero" defaultValue={selected.mortgage??''}/>
+          </label>
+        </div>
+        <p className="text-xs text-amber-800">
+          Estos dos valores no aparecen en las fotos enviadas. Déjalos vacíos hasta verificar el tablero;
+          no se asignará un precio supuesto.
+        </p>
+        <button disabled={disabled||!selectedTitle} className={btn} type="submit">
+          Aplicar tarjeta y alquileres
+        </button>
+      </form>}
       {host && (waiting || (active && !selected.ownerId)) && <form key={selected.position+'-'+state.room.revision} onSubmit={saveSpace} className="mt-6 grid gap-4 rounded-xl border border-emerald-100 bg-emerald-50 p-4">
         <h3 className="text-lg font-black text-emerald-950">Editar casilla {selected.position}</h3>
         <label className="grid gap-1 text-sm font-semibold">Nombre real de la casilla
           <input className={field} name="name" required maxLength={80} defaultValue={selected.name} list="verified-f3182-landmarks"/>
-          <datalist id="verified-f3182-landmarks">{verifiedNames.map(name=><option key={name} value={name}/>)}</datalist>
+          <datalist id="verified-f3182-landmarks">{titleCards.map(t=><option key={t.key} value={t.name}/>)}</datalist>
         </label>
-        <p className="text-xs text-stone-600">Referencia F3182: {verifiedNames.length} destinos confirmados. La ubicación, los precios y los alquileres deben comprobarse con la tarjeta física.</p>
+        <p className="text-xs text-stone-600">Alternativa manual: puedes editar esta casilla, pero perderá la vinculación a la tarjeta verificada. Usa el selector superior para cargar los alquileres exactos.</p>
         <div className="grid gap-4 sm:grid-cols-2">
           <label className="grid gap-1 text-sm font-semibold">Tipo
             <select className={field} name="type" defaultValue={selected.type}>
