@@ -88,7 +88,7 @@ export default function MarketPanel({state,actions,disabled}:Props) {
     </div>
     <section className={card}>
       <h2 className="text-xl font-black text-emerald-950">Subastas</h2>
-      <p className="mt-1 text-sm text-stone-600">El anfitrión abre y cierra las subastas; todos los participantes con saldo pueden pujar.</p>
+      <p className="mt-1 text-sm text-stone-600">Cuando se rechaza una propiedad, el sistema inicia la subasta en M 10. Cada puja aumenta como mínimo M 1; puedes ofrecer cantidades mayores. Cualquier jugador con saldo suficiente puede participar.</p>
       {isHost && <form className="mt-4 flex flex-wrap items-end gap-3" onSubmit={startAuction}>
         <label className="grid min-w-44 grow gap-1 text-sm font-semibold">Propiedad sin dueño
           <select required className={field} name="position">
@@ -97,7 +97,7 @@ export default function MarketPanel({state,actions,disabled}:Props) {
           </select>
         </label>
         <label className="grid w-32 gap-1 text-sm font-semibold">Puja inicial
-          <input className={field} required name="minimum" type="number" min="1" step="1" defaultValue="1"/></label>
+          <input className={field} required name="minimum" type="number" min="1" step="1" defaultValue="10"/></label>
         <button disabled={disabled || !isActive || sale.length===0} className={btn}>Abrir subasta</button>
       </form>}
       {state.auctions.length===0 && <p className="mt-4 text-sm text-stone-500">No hay subastas abiertas.</p>}
