@@ -8,6 +8,7 @@ import BoardPanel from './BoardPanel';
 import MarketPanel from './MarketPanel';
 import CardChallengesPanel from './CardChallengesPanel';
 import VirtualCardModal from './VirtualCardModal';
+import PropertyOfferModal from './PropertyOfferModal';
 
 export interface GameActions {
   act: (action: string, data?: Record<string, unknown>) => Promise<void>;
@@ -40,6 +41,7 @@ export default function RoomApp() {
   const [busy, setBusy] = useState(false);
   const [connection, setConnection] = useState<'connected'|'connecting'|'disconnected'>('disconnected');
   const [tab, setTab] = useState<'mesa'|'tablero'|'banco'|'negociar'|'cartas'|'historial'>('mesa');
+  const [detailsOpen,setDetailsOpen]=useState(false);
   const busyLoad = useRef(false);
   const refreshQueued = useRef(false);
 
@@ -148,6 +150,16 @@ export default function RoomApp() {
   const latestSpace = latestRoll && snapshot?.spaces.find(s=>s.position===latestRoll.to);
   const latestOwner = latestSpace && snapshot?.players.find(p=>p.id===latestSpace.ownerId);
   const latestPlayer = latestRoll && snapshot?.players.find(p=>p.id===latestRoll.playerId);
+  const hostPlayer=snapshot?.players.find(p=>p.role==='host');
+  const openAuction=snapshot?.auctions.find(a=>a.status==='open');
+  const navItems=[
+    {id:'mesa',name:'Mesa',icon:'🎲'},
+    {id:'tablero',name:'Tablero',icon:'▦'},
+    {id:'banco',name:'Banco',icon:'₥'},
+    {id:'negociar',name:'Tratos',icon:'⇄'},
+    {id:'cartas',name:'Cartas',icon:'♧'},
+    {id:'historial',name:'Registro',icon:'☷'}
+  ] as const;
 
 
   async function recover(event: FormEvent<HTMLFormElement>) {
@@ -209,20 +221,26 @@ export default function RoomApp() {
   }
 
   return <div className="min-h-dvh bg-[#f7f0df] text-stone-950">
-    <header className="border-b border-emerald-900/10 bg-emerald-950 text-white">
-      <div className="mx-auto flex max-w-6xl flex-wrap items-center justify-between gap-3 px-4 py-5 sm:px-8">
-        <a href="/" className="flex items-center gap-3 rounded-lg text-white focus-visible:outline focus-visible:outline-amber-300">
-          <span className="grid size-10 place-items-center rounded-xl bg-emerald-600 font-black">M</span>
-          <div><span className="block font-black tracking-tight">Monopoly Perú</span>
-            <span className="block text-xs text-emerald-100">Banca y partida compartida</span></div>
-        </a>
-        {code && <div className="flex items-center gap-2">
-          <span className="rounded-lg border border-emerald-300/30 px-3 py-2 font-mono text-sm font-bold tracking-wide">{code}</span>
-          {snapshot && !finished && <button type="button" className="rounded-lg bg-amber-300 px-3 py-2 text-sm font-bold text-emerald-950" onClick={() => void shareRoom()}>Compartir</button>}
-        </div>}
+    <header className="border-b border-emerald-800 bg-emerald-950 text-white">
+      <div className="mx-auto flex h-[68px] max-w-6xl items-center gap-2 px-3 sm:px-8">
+        <a href="/" aria-label="Inicio" className="grid size-9 shrink-0 place-items-center rounded-xl bg-emerald-700 text-sm font-black text-white shadow-sm">M</a>
+        <div className="min-w-0 flex-1">
+          <p className="truncate text-sm font-extrabold text-white">Anfitrión: {hostPlayer?.alias||'Monopoly Perú'}</p>
+          <p className="truncate font-mono text-[11px] text-emerald-200">Partida #{code||'—'}</p>
+        </div>
+        {snapshot && <span className={'size-2 shrink-0 rounded-full '+(connection==='connected'?'bg-emerald-300':'bg-amber-400')}
+          title={connection==='connected'?'Conectado':'Sincronizando'} aria-label={connection==='connected'?'En tiempo real':'Sincronizando'}/>}
+        {code && snapshot && !finished && <button type="button" onClick={()=>void shareRoom()}
+          aria-label="Compartir invitación" title="Compartir" className="grid size-10 shrink-0 place-items-center rounded-xl border border-white/20 bg-white/10 hover:bg-white/20">
+          <svg aria-hidden="true" width="21" height="21" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"><circle cx="18" cy="5" r="3"/><circle cx="6" cy="12" r="3"/><circle cx="18" cy="19" r="3"/><path d="m8.7 10.7 6.6-4.4M8.7 13.3l6.6 4.4"/></svg>
+        </button>}
+        {snapshot && <button type="button" onClick={()=>setDetailsOpen(true)} aria-label="Detalles de la partida"
+          title="Detalles de sala" className="grid size-10 shrink-0 place-items-center rounded-xl border border-white/20 bg-white/10 hover:bg-white/20">
+          <svg aria-hidden="true" width="21" height="21" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round"><circle cx="12" cy="12" r="9"/><path d="M12 11v6M12 7h.01"/></svg>
+        </button>}
       </div>
     </header>
-    <main className="mx-auto max-w-6xl px-4 pb-16 pt-6 sm:px-8">
+    <main className="mx-auto max-w-6xl px-4 pb-32 pt-4 sm:px-8">
       {!code && <section className={panel}>
         <h1 className="text-2xl font-bold">Código de sala no indicado</h1>
         <p className="mt-2 text-stone-700">Abre el enlace que te compartieron o crea una sala nueva.</p>
@@ -254,41 +272,11 @@ export default function RoomApp() {
       </section>}
       {code && session && !snapshot && <p role="status" className="rounded-xl bg-white p-5">Cargando partida y verificando tu sesión...</p>}
       {snapshot && me && <div>
-        <div className="mb-5 flex flex-wrap items-center justify-between gap-3">
-          <div>
-            <p className="text-xs font-black uppercase tracking-wider text-emerald-700">{waiting ? 'Preparación de sala' : finished ? 'Partida terminada' : 'Partida en curso'}</p>
-            <h1 className="text-2xl font-black text-emerald-950 sm:text-3xl">{snapshot.room.name || 'Mesa de Monopoly Perú'}</h1>
-            <p className="mt-1 text-sm text-stone-600">Juegas como <strong>{me.alias}</strong>{host ? ' · Anfitrión' : ''}</p>
-            <button type="button" className="mt-2 text-xs font-semibold text-emerald-800 underline"
-              onClick={()=>void copyPlayerAccess()}>
-              {accessCopied?'Clave de acceso copiada':'Guardar mi clave privada para reingresar'}
-            </button>
-            <span className="ml-2 text-xs text-stone-500">No la compartas: permite usar tu ficha desde otro dispositivo.</span>
-          </div>
-          <span className={'rounded-full px-3 py-1.5 text-xs font-bold ' +
-            (connection==='connected' ? 'bg-emerald-100 text-emerald-900' : 'bg-stone-200 text-stone-700')}>
-            {finished ? 'Finalizada' : connection==='connected' ? 'En tiempo real' : connection==='connecting' ? 'Conectando...' : 'Reconectando...'}
-          </span>
-        </div>
-        <nav className="mb-5 flex gap-2 overflow-x-auto pb-2" aria-label="Secciones de la sala">
-          {(['mesa','tablero','banco','negociar','cartas','historial'] as const).filter(t => !waiting || (t!=='banco' && t!=='negociar' && t!=='cartas')).map(t =>
-            <button key={t} type="button" aria-current={tab===t ? 'page' : undefined}
-              onClick={() => setTab(t)}
-              className={'shrink-0 rounded-xl px-4 py-2 text-sm font-bold capitalize ' +
-                (tab===t?'bg-emerald-800 text-white':'bg-white text-emerald-900 ring-1 ring-stone-200')}>
-              {t}</button>
-          )}
-        </nav>
-        {!waiting && latestRoll && latestSpace && <div role="status" aria-live="polite"
-          className="mb-4 rounded-xl border border-sky-200 bg-sky-50 p-3 text-sm text-sky-950">
-          <strong>{latestPlayer?.alias||'Jugador'}:</strong> dados {latestRoll.d1} + {latestRoll.d2} =
-          {' '}{latestRoll.d1+latestRoll.d2} · casilla {latestRoll.to}: <strong>{latestSpace.name}</strong>.
-          {latestOwner && <span> Propiedad de <strong>{latestOwner.alias}</strong>
-            {latestSpace.mortgaged?' (hipotecada: no genera alquiler)':
-              latestOwner.id===latestRoll.playerId?' (propia)':' (alquiler al propietario)'}.</span>}
-          {!latestOwner && ['property','railroad','utility'].includes(latestSpace.type) &&
-            <span> Sin dueño: compra o subasta.</span>}
-        </div>}
+        {openAuction && tab==='mesa' && <button type="button" onClick={()=>setTab('negociar')}
+          className="mb-4 flex w-full items-center justify-between rounded-xl border border-amber-300 bg-amber-100 p-3 text-sm font-bold text-amber-950">
+          <span>Subasta activa · {snapshot.spaces[openAuction.position]?.name||'Propiedad'}</span>
+          <span>Ver pujas ›</span>
+        </button>}
         <div aria-live="polite" role="status" className="mb-4 space-y-2">
           {error && <p className="rounded-xl border border-red-200 bg-red-50 p-3 text-sm font-semibold text-red-800">{error}</p>}
           {message && <p className="rounded-xl border border-emerald-200 bg-emerald-50 p-3 text-sm text-emerald-900">{message}</p>}
@@ -301,6 +289,7 @@ export default function RoomApp() {
         {tab==='negociar' && !waiting && <MarketPanel state={snapshot} actions={actions} disabled={busy}/>}
         {tab==='cartas' && !waiting && <CardChallengesPanel state={snapshot} actions={actions} disabled={busy}/>}
         <VirtualCardModal state={snapshot} actions={actions} disabled={busy} error={error}/>
+        <PropertyOfferModal state={snapshot} actions={actions} disabled={busy}/>
         {tab==='historial' && <section className={panel}>
           <h2 className="text-xl font-black text-emerald-950">Registro de la partida</h2>
           {snapshot.ledger.length>0 && <div className="mt-4">
@@ -321,6 +310,43 @@ export default function RoomApp() {
           {snapshot.events.length===0 && <p className="mt-3 text-sm text-stone-500">Todavía no hay operaciones registradas.</p>}
         </section>}
         {finished && <p className="mt-5 rounded-xl bg-amber-100 p-4 text-center font-semibold text-amber-950">La partida ha terminado. Puedes consultar su estado, pero ya no se permiten transacciones.</p>}
+        {detailsOpen && <div className="fixed inset-0 z-[60] flex items-center justify-center bg-stone-950/70 p-4" onClick={()=>setDetailsOpen(false)}>
+          <section role="dialog" aria-modal="true" aria-labelledby="room-details-heading"
+            className="w-full max-w-md rounded-3xl bg-[#fffaf0] p-6 shadow-2xl"
+            onClick={e=>e.stopPropagation()}>
+            <div className="flex items-center justify-between gap-3">
+              <h2 id="room-details-heading" className="text-xl font-black text-emerald-950">Detalles de la partida</h2>
+              <button type="button" aria-label="Cerrar detalles" onClick={()=>setDetailsOpen(false)}
+                className="grid size-9 place-items-center rounded-full border border-stone-300 text-xl text-stone-700">×</button>
+            </div>
+            <dl className="mt-4 grid gap-3 text-sm">
+              <div><dt className="text-xs font-bold uppercase text-stone-500">Nombre</dt><dd className="font-bold text-emerald-950">{snapshot.room.name||'Mesa de Monopoly Perú'}</dd></div>
+              <div><dt className="text-xs font-bold uppercase text-stone-500">Anfitrión</dt><dd className="font-bold">{hostPlayer?.alias||'—'}</dd></div>
+              <div><dt className="text-xs font-bold uppercase text-stone-500">Código de partida</dt><dd className="font-mono font-bold">{code}</dd></div>
+              <div><dt className="text-xs font-bold uppercase text-stone-500">Estado y turno</dt><dd>{waiting?'Esperando jugadores':finished?'Finalizada':'En curso · Turno '+snapshot.room.turnNumber}</dd></div>
+              <div><dt className="text-xs font-bold uppercase text-stone-500">Participantes</dt><dd>{snapshot.players.filter(p=>!p.bankrupt).length} de {snapshot.room.maxPlayers}</dd></div>
+              <div><dt className="text-xs font-bold uppercase text-stone-500">Dados y cartas</dt><dd>Dados {snapshot.room.diceMode==='virtual'?'virtuales':'físicos'} · Cartas {snapshot.room.cardMode==='virtual'?'virtuales':'físicas'}</dd></div>
+              <div><dt className="text-xs font-bold uppercase text-stone-500">Tu identidad</dt><dd>{me.alias}{host?' · Anfitrión':''}</dd></div>
+              <div><dt className="text-xs font-bold uppercase text-stone-500">Conexión</dt><dd>{connection==='connected'?'En tiempo real':'Sincronizando'}</dd></div>
+            </dl>
+            <button type="button" onClick={()=>void copyPlayerAccess()}
+              className="mt-5 w-full rounded-xl border border-emerald-700 px-4 py-3 text-sm font-bold text-emerald-900">
+              {accessCopied?'Clave privada copiada':'Guardar clave privada de reingreso'}
+            </button>
+            <p className="mt-2 text-xs text-stone-500">No compartas esta clave: permite acceder a tu ficha.</p>
+          </section>
+        </div>}
+        <nav aria-label="Secciones de la sala" className="fixed inset-x-0 bottom-0 z-30 border-t border-stone-200 bg-white/95 px-2 pt-2 pb-[max(8px,env(safe-area-inset-bottom))] shadow-[0_-8px_30px_#00000012] backdrop-blur-md">
+          <div className="mx-auto grid max-w-xl grid-cols-6 gap-1">
+            {navItems.filter(t=>!waiting||!['banco','negociar','cartas'].includes(t.id)).map(t=>
+              <button key={t.id} type="button" aria-current={tab===t.id?'page':undefined}
+                onClick={()=>setTab(t.id)}
+                className={'flex min-h-[54px] flex-col items-center justify-center gap-0.5 rounded-xl px-1 text-[10px] font-bold '+
+                  (tab===t.id?'bg-emerald-900 text-white':'text-emerald-950')}>
+                <span aria-hidden="true" className="text-[22px] leading-none">{t.icon}</span><span>{t.name}</span>
+              </button>)}
+          </div>
+        </nav>
         <div className="mt-7 flex justify-end gap-3">
           <button type="button" onClick={() => void refresh()} className="rounded-xl border border-emerald-700 px-4 py-2 text-sm font-bold text-emerald-900">Actualizar ahora</button>
           <button type="button" onClick={()=>window.location.assign('/')}
