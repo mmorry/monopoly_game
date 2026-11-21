@@ -322,7 +322,11 @@ export default function RoomApp() {
         {finished && <p className="mt-5 rounded-xl bg-amber-100 p-4 text-center font-semibold text-amber-950">La partida ha terminado. Puedes consultar su estado, pero ya no se permiten transacciones.</p>}
         <div className="mt-7 flex justify-end gap-3">
           <button type="button" onClick={() => void refresh()} className="rounded-xl border border-emerald-700 px-4 py-2 text-sm font-bold text-emerald-900">Actualizar ahora</button>
-          {waiting && !host && <button disabled={busy} type="button" onClick={() => void actions.leave()} className="rounded-xl border border-red-200 px-4 py-2 text-sm font-bold text-red-800">Salir de sala</button>}
+          <button type="button" onClick={()=>window.location.assign('/')}
+            className="rounded-xl border border-emerald-700 px-4 py-2 text-sm font-bold text-emerald-900">
+            Salir temporalmente (conservar ficha)
+          </button>
+          {waiting && !host && <button disabled={busy} type="button" onClick={() => void actions.leave()} className="rounded-xl border border-red-200 px-4 py-2 text-sm font-bold text-red-800">Abandonar sala definitivamente</button>}
           {host && !finished && <button disabled={busy} type="button" onClick={() => void actions.finish()} className="rounded-xl border border-red-200 px-4 py-2 text-sm font-bold text-red-800">Finalizar sala</button>}
         </div>
       </div>}
