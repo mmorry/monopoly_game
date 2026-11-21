@@ -36,6 +36,13 @@ const isCreate = mode === 'create';
               </select>
             </label>
           </div>
+          <label class="grid gap-2 text-sm font-semibold text-emerald-950">
+            El Chamán y La Tómbola
+            <select class="game-input" name="cardMode">
+              <option value="physical">Cartas físicas — registras la carta del mazo físico</option>
+              <option value="virtual">Cartas virtuales — 16 por baraja, rotación automática</option>
+            </select>
+          </label>
         </>
       ) : (
         <label class="grid gap-2 text-sm font-semibold text-emerald-950">
@@ -110,6 +117,12 @@ const isCreate = mode === 'create';
           session = await gameRpc<GameSession>('game_join_room', {
             p_alias: alias,
             p_code: String(data.get('roomCode') || '').trim().toUpperCase()
+          });
+        }
+        if (create) {
+          await gameRpc('game_card_mode',{
+            p_code:session.code,p_token:session.token,
+            p_mode:String(data.get('cardMode')||'physical')
           });
         }
         saveSession(session);
