@@ -33,11 +33,6 @@ export default function GamePanel({ state, actions, disabled, mode }: Props) {
     rojo:'#dc2626',amarillo:'#eab308',verde:'#15803d',azul:'#1d4ed8'
   };
   const myProperties=state.spaces.filter(s=>s.ownerId===state.me.id);
-  const groupedProperties=Object.entries(myProperties.reduce<Record<string,typeof myProperties>>((groups,s)=>{
-    const group=s.group||'Especial';
-    (groups[group]??=[]).push(s);
-    return groups;
-  },{}));
   const [die1,setDie1]=useState(1);
   const [die2,setDie2]=useState(1);
   const [transferTo,setTransferTo]=useState('');
@@ -100,6 +95,8 @@ export default function GamePanel({ state, actions, disabled, mode }: Props) {
   if(mode==='bank') return <div className="space-y-5">{bankPanel}</div>;
 
   return <div className="grid gap-5">
+    <style>{`@keyframes monopoly-progress {from{width:0%} to{width:100%}}
+      @keyframes monopoly-marker {from{left:0%} to{left:calc(100% - 18px)}}`}</style>
     {state.cards.some(challenge=>challenge.outcome==='pending') &&
       <CardChallengesPanel state={state} actions={actions} disabled={disabled} compact/>}
     <section className={card}>
@@ -128,10 +125,11 @@ export default function GamePanel({ state, actions, disabled, mode }: Props) {
           <div className="mx-auto mt-4 flex max-w-xs items-center gap-2">
             <span className="grid size-8 shrink-0 place-items-center rounded-full bg-white text-xs font-black text-amber-950">{lastRoll.from}</span>
             <div className="relative h-2 grow overflow-hidden rounded-full bg-amber-200">
-              <div key={lastRoll.id} className="h-full w-full origin-left animate-[grow_650ms_ease-out] rounded-full bg-emerald-700"
-                style={{animationName:'none'}}/>
-              <div className="absolute inset-y-0 left-0 rounded-full bg-emerald-800 transition-all duration-700"
-                style={{width:'100%'}}/>
+              <div key={lastRoll.id} className="h-full rounded-full bg-emerald-700"
+                style={{animation:'monopoly-progress 850ms ease-out both'}}/>
+              <span key={'marker-'+lastRoll.id} aria-hidden="true"
+                className="absolute top-1/2 size-[18px] -translate-y-1/2 rounded-full border-2 border-white bg-emerald-900 shadow-md"
+                style={{animation:'monopoly-marker 850ms ease-out both'}}/>
             </div>
             <span className="grid size-8 shrink-0 place-items-center rounded-full bg-emerald-800 text-xs font-black text-white">{lastRoll.to}</span>
           </div>
