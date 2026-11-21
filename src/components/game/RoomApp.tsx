@@ -14,6 +14,8 @@ export interface GameActions {
   trade: (action: string, data: Record<string, unknown>) => Promise<void>;
   auction: (action: string, data: Record<string, unknown>) => Promise<void>;
   card: (action: string, data: Record<string, unknown>) => Promise<void>;
+  declineProperty: () => Promise<void>;
+  cardMode: (mode: 'physical'|'virtual') => Promise<void>;
   setSpace: (data: Record<string, unknown>) => Promise<void>;
   assignF3182Title: (data: Record<string, unknown>) => Promise<void>;
   restoreF3182Board: () => Promise<void>;
@@ -88,6 +90,12 @@ export default function RoomApp() {
     trade: (action, data) => session ? perform(() => tradeAction(session, action, data)) : Promise.resolve(),
     auction: (action, data) => session ? perform(() => auctionAction(session, action, data)) : Promise.resolve(),
     card: (action, data) => session ? perform(() => cardAction(session, action, data)) : Promise.resolve(),
+    declineProperty: () => session ? perform(() => gameRpc('game_decline_property',{
+      p_code:session.code,p_token:session.token
+    })) : Promise.resolve(),
+    cardMode: (mode) => session ? perform(() => gameRpc('game_card_mode',{
+      p_code:session.code,p_token:session.token,p_mode:mode
+    })) : Promise.resolve(),
     restoreF3182Board: () => session ? perform(
       () => gameRpc('game_load_f3182_board', {p_code:session.code,p_token:session.token}),
       '¿Restaurar las 40 casillas oficiales F3182? Se perderán las modificaciones manuales del tablero. Esta acción solo funciona antes de iniciar la partida.') : Promise.resolve(),
