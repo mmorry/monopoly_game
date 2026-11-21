@@ -136,6 +136,7 @@ export interface CardChallenge {
   note: string|null;
   source: 'dice'|'manual';
   drawnAt: string;
+  revealedAt: string|null;
   resolvedAt: string|null;
 }
 export interface CardTotals {
