@@ -16,6 +16,9 @@ export default function GamePanel({ state, actions, disabled, mode }: Props) {
   const canAct=state.room.status==='active';
   const turn=state.room.currentPlayerId===state.me.id;
   const current=players.find(p=>p.id===state.room.currentPlayerId);
+  const recentSpace=state.rolls[0] ? state.spaces.find(s=>s.position===state.rolls[0].to) : undefined;
+  const recentPlayer=state.rolls[0] ? players.find(p=>p.id===state.rolls[0].playerId) : undefined;
+  const recentOwner=recentSpace ? players.find(p=>p.id===recentSpace.ownerId) : undefined;
   const landing=state.spaces.find(s=>s.position===me?.position);
   const lastRoll=state.rolls[0];
   const [rolling,setRolling]=useState(false);
@@ -100,32 +103,62 @@ export default function GamePanel({ state, actions, disabled, mode }: Props) {
     {state.cards.some(challenge=>challenge.outcome==='pending') &&
       <CardChallengesPanel state={state} actions={actions} disabled={disabled} compact/>}
     <section className={card}>
-      <div className="flex flex-wrap items-center justify-between gap-3">
-        <div>
-          <p className="text-xs font-black uppercase tracking-widest text-red-700">Turno {state.room.turnNumber}</p>
-          <h2 className="mt-1 text-2xl font-black text-emerald-950">{current?.alias || 'Partida finalizada'}</h2>
-          <p className="mt-1 text-sm text-stone-600">{turn ? 'Es tu turno.' : 'Espera tu turno para lanzar los dados.'}</p>
-        </div>
-        {(lastRoll||rolling) && <div className="rounded-xl bg-amber-100 px-4 py-3 text-center" aria-live="polite">
-          <p className="text-xs font-bold uppercase text-amber-900">{rolling?'Lanzando dados…':'Última tirada'}</p>
-          <div className="my-1 flex justify-center gap-2">
-            {[lastRoll?.d1||1,lastRoll?.d2||1].map((value,i)=>
-              <span key={i} className={'text-5xl leading-none text-amber-950 '+(rolling?'animate-bounce':'')}
-                style={{animationDelay:i?'120ms':'0ms'}} aria-label={'Resultado del dado '+(i+1)+': '+value}>
-                {rolling?'⚄':dieFaces[value]}
-              </span>)}
-          </div>
-          {lastRoll && <p className="text-xl font-black text-amber-950">{lastRoll.d1} + {lastRoll.d2} = {lastRoll.d1+lastRoll.d2}</p>}
-          {lastRoll && <p className="text-xs font-bold text-amber-950">
-            Ficha {lastRoll.from} → {lastRoll.to} · {
-              (lastRoll.from+lastRoll.d1+lastRoll.d2)%40===lastRoll.to
-                ? 'Avanza '+(lastRoll.d1+lastRoll.d2)+' casillas'
-                : 'Movimiento especial: a casilla '+lastRoll.to
-            }
-            {lastRoll.d1===lastRoll.d2?' · Dobles':''}
-          </p>}
-        </div>}
+      <div className="text-center">
+        <p className="text-xs font-extrabold uppercase tracking-[.18em] text-red-700">Turno {state.room.turnNumber}</p>
+        <h2 className="mt-1 text-2xl font-black text-emerald-950">{current?.alias||'Partida finalizada'}</h2>
+        <p className="mt-1 text-sm text-stone-600">
+          {turn?'Es tu turno de jugar':'Turno de '+(current?.alias||'otro jugador')}
+        </p>
       </div>
+      {(lastRoll||rolling) && <div className="mx-auto mt-5 w-full max-w-sm rounded-3xl border border-amber-200 bg-gradient-to-b from-amber-50 to-amber-100 px-5 py-6 text-center shadow-sm" aria-live="polite">
+        <p className="text-xs font-black uppercase tracking-widest text-amber-900">{rolling?'Lanzando…':'Última tirada'}</p>
+        <div className="my-2 flex justify-center gap-3">
+          {[lastRoll?.d1||1,lastRoll?.d2||1].map((value,i)=>
+            <span key={i} className={'text-6xl leading-none text-amber-950 '+(rolling?'animate-bounce':'')}
+              style={{animationDelay:i?'120ms':'0ms'}} aria-label={'Resultado del dado '+(i+1)+': '+value}>
+              {rolling?'⚄':dieFaces[value]}
+            </span>)}
+        </div>
+        {lastRoll&&<>
+          <p className="text-3xl font-black text-amber-950">{lastRoll.d1} + {lastRoll.d2} = {lastRoll.d1+lastRoll.d2}</p>
+          <p className="mt-2 text-xs font-semibold text-amber-900">
+            {recentPlayer?.alias||'Jugador'} · {lastRoll.from} → {lastRoll.to}
+            {lastRoll.d1===lastRoll.d2?' · Dobles':''}
+          </p>
+          <div className="mx-auto mt-4 flex max-w-xs items-center gap-2">
+            <span className="grid size-8 shrink-0 place-items-center rounded-full bg-white text-xs font-black text-amber-950">{lastRoll.from}</span>
+            <div className="relative h-2 grow overflow-hidden rounded-full bg-amber-200">
+              <div key={lastRoll.id} className="h-full w-full origin-left animate-[grow_650ms_ease-out] rounded-full bg-emerald-700"
+                style={{animationName:'none'}}/>
+              <div className="absolute inset-y-0 left-0 rounded-full bg-emerald-800 transition-all duration-700"
+                style={{width:'100%'}}/>
+            </div>
+            <span className="grid size-8 shrink-0 place-items-center rounded-full bg-emerald-800 text-xs font-black text-white">{lastRoll.to}</span>
+          </div>
+          <p className="mt-2 text-xs font-bold text-emerald-900">
+            {((lastRoll.from+lastRoll.d1+lastRoll.d2)%40)===lastRoll.to
+              ? 'Avanzó '+(lastRoll.d1+lastRoll.d2)+' casillas'
+              : 'Movimiento especial a casilla '+lastRoll.to}
+          </p>
+        </>}
+      </div>}
+      {recentSpace && <section className="mt-5">
+        <h3 className="mb-3 text-sm font-black text-emerald-950">Casilla de la última tirada</h3>
+        <div className="overflow-hidden rounded-2xl border border-stone-200 bg-white shadow-sm">
+          <div className="h-3" style={{backgroundColor:colorGroups[recentSpace.group||'']||'#64748b'}}/>
+          <div className="flex items-center justify-between gap-3 px-4 py-4">
+            <div className="min-w-0">
+              <p className="text-xs font-bold uppercase tracking-wide text-stone-500">#{recentSpace.position} · {recentSpace.group||'Especial'}</p>
+              <p className="mt-1 text-base font-black text-emerald-950">{recentSpace.name}</p>
+              <p className="mt-1 text-xs text-stone-600">
+                {recentOwner?'Propietario: '+recentOwner.alias:'Sin propietario'}
+                {recentSpace.mortgaged?' · Hipotecada':''}
+              </p>
+            </div>
+            {recentSpace.price!==null && <strong className="shrink-0 rounded-xl bg-emerald-50 p-3 text-sm text-emerald-900">{money(recentSpace.price)}</strong>}
+          </div>
+        </div>
+      </section>}
       {turn && !state.room.turnRolled && <div className="mt-6 rounded-xl border border-emerald-200 bg-emerald-50 p-4">
         {state.room.diceMode==='physical' ? <div>
           <p className="mb-3 text-sm font-bold text-emerald-950">Lanza tus dados físicos y registra el resultado</p>
@@ -151,24 +184,8 @@ export default function GamePanel({ state, actions, disabled, mode }: Props) {
           {me && me.balance<state.room.pendingAmount && <p className="mt-2 text-xs text-red-800">Saldo insuficiente. Puedes hipotecar propiedades, vender casas o negociar.</p>}
         </div>}
         {landing && <p className="text-sm font-semibold text-emerald-950">Casilla actual: {landing.position} · {landing.name}</p>}
-        {landing && !landing.ownerId && landing.price!==null && landing.price>0 &&
-          ['property','railroad','utility'].includes(landing.type) && state.room.pendingAmount===0 &&
-          <button className={btn} disabled={disabled || !canAct || !me || me.balance<landing.price}
-            onClick={()=>void actions.property('buy',landing.position)}>Comprar · {money(landing.price)}</button>}
-        {landing && !landing.ownerId && landing.price!==null && landing.price>0 &&
-          ['property','railroad','utility'].includes(landing.type) && state.room.pendingAmount===0 &&
-          !state.auctions.some(a=>a.position===landing.position) &&
-          <button type="button" className="rounded-xl border-2 border-amber-700 px-4 py-3 text-sm font-bold text-amber-900 disabled:opacity-40"
-            disabled={disabled||!canAct}
-            onClick={()=>void actions.declineProperty()}>
-            No comprar · subastar desde M 10
-          </button>}
         {landing && !landing.ownerId && ['property','railroad','utility'].includes(landing.type) && !landing.price &&
           <p className="text-sm text-amber-900">El precio de esta casilla aún no está configurado por el anfitrión.</p>}
-        {state.room.pendingAmount===0 &&
-          <button type="button" disabled={disabled || !canAct} className={btn} onClick={()=>void actions.act('end_turn')}>
-            {state.room.lastRollDouble && !me?.inJail ? 'Continuar: dados dobles' : 'Finalizar turno'}
-          </button>}
       </div>}
       {turn && me?.inJail && state.myJailPasses.length>0 && <div className="mt-4 rounded-xl border border-emerald-200 bg-emerald-50 p-4">
         <p className="text-sm font-bold text-emerald-950">Tienes una tarjeta para salir gratis de la cárcel.</p>
@@ -186,6 +203,20 @@ export default function GamePanel({ state, actions, disabled, mode }: Props) {
       </div>}
     </section>
 
+    {myProperties.length>0 && <section className={card}>
+      <h2 className="mb-3 text-base font-black text-emerald-950">Mis propiedades</h2>
+      <div className="-mx-1 flex snap-x gap-3 overflow-x-auto px-1 pb-2">
+        {myProperties.map(s=><article key={s.position}
+          className="min-w-[150px] max-w-[180px] flex-1 shrink-0 snap-start overflow-hidden rounded-2xl border border-stone-200 bg-white shadow-sm">
+          <div className="h-2.5" style={{backgroundColor:colorGroups[s.group||'']||'#64748b'}}/>
+          <div className="p-3">
+            <p className="text-[10px] font-bold uppercase text-stone-500">{s.group||'Especial'}</p>
+            <p className="mt-1 text-sm font-black leading-snug text-emerald-950">{s.name}</p>
+            <p className="mt-2 text-xs font-semibold text-stone-700">{s.mortgaged?'Hipotecada':s.level===5?'Hotel':s.level?'Casas: '+s.level:'Sin construir'}</p>
+          </div>
+        </article>)}
+      </div>
+    </section>}
     <section className={card}>
       <h2 className="mb-4 text-xl font-black text-emerald-950">Jugadores y saldos</h2>
       <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
@@ -215,27 +246,11 @@ export default function GamePanel({ state, actions, disabled, mode }: Props) {
         <button disabled={disabled || !canAct} className={btn}>Mover ficha</button>
       </form>
     </section>}
-    <section className={card}>
-      <h2 className="text-xl font-black text-emerald-950">Tus propiedades</h2>
-      <p className="mt-1 text-sm text-stone-600">Para comprar, hipotecar o construir, consulta la pestaña Tablero.</p>
-      <div className="mt-3 grid gap-3">
-        {groupedProperties.map(([group,spaces])=><section key={group} className="rounded-xl border border-stone-200 p-3">
-          <h3 className="mb-2 flex items-center gap-2 text-sm font-black text-stone-900">
-            <span className="size-4 rounded-sm" style={{backgroundColor:colorGroups[group]||'#a8a29e'}}/>
-            {group.toUpperCase()} · {spaces.length} propiedades
-          </h3>
-          <div className="flex flex-wrap gap-2">
-            {spaces.map(s=><span key={s.position} className="rounded-full bg-stone-100 px-3 py-1.5 text-xs font-semibold">
-              {s.name}{s.mortgaged?' · hipotecada':''}{s.level?' · '+s.level+' mejoras':''}
-            </span>)}
-          </div>
-        </section>)}
-      </div>
-      {state.spaces.every(s=>s.ownerId!==state.me.id) && <p className="mt-3 text-sm text-stone-500">Todavía no tienes propiedades.</p>}
-      {canAct && me && !me.bankrupt && <button type="button" disabled={disabled} className="mt-4 text-sm font-semibold text-red-700 underline"
-        onClick={()=>{if(window.confirm('¿Declararte en bancarrota? Perderás tu dinero y tus propiedades.')) void actions.act('bankrupt');}}>
-        Declararme en bancarrota</button>}
-    </section>
+    {canAct && me && !me.bankrupt && <button type="button" disabled={disabled}
+      className="self-start text-xs font-semibold text-red-700 underline"
+      onClick={()=>{if(window.confirm('¿Declararte en bancarrota? Perderás tu dinero y tus propiedades.')) void actions.act('bankrupt');}}>
+      Declararme en bancarrota
+    </button>}
     {bankPanel}
   </div>;
 }
