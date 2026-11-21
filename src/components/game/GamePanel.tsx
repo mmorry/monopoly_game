@@ -170,6 +170,15 @@ export default function GamePanel({ state, actions, disabled, mode }: Props) {
             {state.room.lastRollDouble && !me?.inJail ? 'Continuar: dados dobles' : 'Finalizar turno'}
           </button>}
       </div>}
+      {turn && me?.inJail && state.myJailPasses.length>0 && <div className="mt-4 rounded-xl border border-emerald-200 bg-emerald-50 p-4">
+        <p className="text-sm font-bold text-emerald-950">Tienes una tarjeta para salir gratis de la cárcel.</p>
+        <div className="mt-2 flex flex-wrap gap-2">
+          {state.myJailPasses.map(pass=><button key={pass.deck+pass.number} className={btn}
+            disabled={disabled} onClick={()=>void actions.useJailPass(pass.deck)}>
+            Usar tarjeta de {pass.deck==='chaman'?'El Chamán':'La Tómbola'}
+          </button>)}
+        </div>
+      </div>}
       {turn && me?.inJail && !state.room.turnRolled && <div className="mt-4 rounded-xl bg-amber-50 p-4">
         <p className="text-sm font-semibold text-amber-950">Estás en la cárcel. Puedes intentar dobles o pagar la fianza.</p>
         <button className={btn+' mt-2'} disabled={disabled || me.balance<state.room.bailAmount}
