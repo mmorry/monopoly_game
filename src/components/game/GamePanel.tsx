@@ -114,7 +114,7 @@ export default function GamePanel({ state, actions, disabled, mode }: Props) {
           <div className="my-1 flex justify-center gap-2">
             {[lastRoll?.d1||1,lastRoll?.d2||1].map((value,i)=>
               <span key={i} className={'text-5xl leading-none text-amber-950 '+(rolling?'animate-bounce':'')}
-                style={{animationDelay:i?'120ms':'0ms'}} aria-label={'Dado '+(i+1)+': '+value}>
+                style={{animationDelay:i?'120ms':'0ms'}} aria-label={'Resultado del dado '+(i+1)+': '+value}>
                 {rolling?'⚄':dieFaces[value]}
               </span>)}
           </div>
