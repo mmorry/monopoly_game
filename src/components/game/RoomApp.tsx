@@ -16,6 +16,7 @@ export interface GameActions {
   card: (action: string, data: Record<string, unknown>) => Promise<void>;
   setSpace: (data: Record<string, unknown>) => Promise<void>;
   assignF3182Title: (data: Record<string, unknown>) => Promise<void>;
+  restoreF3182Board: () => Promise<void>;
   settings: (data: Record<string, unknown>) => Promise<void>;
   start: () => Promise<void>;
   finish: () => Promise<void>;
@@ -87,6 +88,9 @@ export default function RoomApp() {
     trade: (action, data) => session ? perform(() => tradeAction(session, action, data)) : Promise.resolve(),
     auction: (action, data) => session ? perform(() => auctionAction(session, action, data)) : Promise.resolve(),
     card: (action, data) => session ? perform(() => cardAction(session, action, data)) : Promise.resolve(),
+    restoreF3182Board: () => session ? perform(
+      () => gameRpc('game_load_f3182_board', {p_code:session.code,p_token:session.token}),
+      '¿Restaurar las 40 casillas oficiales F3182? Se perderán las modificaciones manuales del tablero. Esta acción solo funciona antes de iniciar la partida.') : Promise.resolve(),
     assignF3182Title: (data) => session ? perform(() => gameRpc('game_assign_f3182_title',
       { p_code: session.code, p_token: session.token, ...data })) : Promise.resolve(),
     setSpace: (data) => session ? perform(() => gameRpc('game_set_space',
