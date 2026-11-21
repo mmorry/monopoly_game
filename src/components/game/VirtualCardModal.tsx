@@ -9,6 +9,7 @@ export default function VirtualCardModal({state,actions,disabled,error}:Props){
   const pending:CardChallenge|undefined=state.cards.find(card=>card.outcome==='pending');
   const [flipping,setFlipping]=useState(false);
   const revealed=!!pending?.revealedAt;
+  const hasContent=!!pending?.title?.trim() && !!pending?.instruction?.trim();
   const ownTurn=!!pending && pending.playerId===state.me.id &&
     state.room.currentPlayerId===state.me.id;
   useEffect(()=>{setFlipping(false);},[pending?.id]);
@@ -32,7 +33,7 @@ export default function VirtualCardModal({state,actions,disabled,error}:Props){
         {deckLabel(pending.deck)} · Monopoly Perú F3182
       </p>
       <h2 id="virtual-card-title" className="mt-2 text-center text-xl font-black text-emerald-950">
-        {revealed?'Carta revelada':'¡Te tocó sacar una carta!'}
+        {revealed?(hasContent?'Carta revelada':'Cargando carta…'):'¡Te tocó sacar una carta!'}
       </h2>
       <p className="mt-2 text-center text-sm text-stone-600">
         Turno de {player?.alias||'Jugador'}
@@ -57,7 +58,7 @@ export default function VirtualCardModal({state,actions,disabled,error}:Props){
           {flipping?'Revelando…':'Sacar carta'}
         </button>
         <p className="mt-2 text-center text-xs text-stone-600">Solo el jugador de turno puede revelar esta carta.</p>
-      </> : ownTurn ? <>
+      </> : !hasContent ? <p role="status" className="mt-5 text-center text-sm font-semibold text-amber-900">La carta está revelada, pero falta recibir su contenido. Actualiza la partida para sincronizar.</p> : ownTurn ? <>
         <p className="mt-4 text-center text-sm leading-6 text-stone-700">
           Confirma para aplicar el efecto de la carta una sola vez.
         </p>
