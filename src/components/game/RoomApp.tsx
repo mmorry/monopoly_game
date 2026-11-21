@@ -16,6 +16,7 @@ export interface GameActions {
   trade: (action: string, data: Record<string, unknown>) => Promise<void>;
   auction: (action: string, data: Record<string, unknown>) => Promise<void>;
   card: (action: string, data: Record<string, unknown>) => Promise<void>;
+  revealVirtualCard: (id:number) => Promise<void>;
   finishVirtualCard: (id:number) => Promise<void>;
   useJailPass: (deck:'chaman'|'tombola') => Promise<void>;
   declineProperty: () => Promise<void>;
@@ -122,6 +123,9 @@ export default function RoomApp() {
     trade: (action, data) => session ? perform(() => tradeAction(session, action, data)) : Promise.resolve(),
     auction: (action, data) => session ? perform(() => auctionAction(session, action, data)) : Promise.resolve(),
     card: (action, data) => session ? perform(() => cardAction(session, action, data)) : Promise.resolve(),
+    revealVirtualCard: (id) => session ? perform(() => gameRpc('game_reveal_virtual_card',{
+      p_code:session.code,p_token:session.token,p_card_id:id
+    })) : Promise.resolve(),
     finishVirtualCard: (id) => session ? perform(() => gameRpc('game_finish_virtual_card',{
       p_code:session.code,p_token:session.token,p_card_id:id
     })) : Promise.resolve(),
