@@ -7,8 +7,6 @@ interface Props {
   player?: GamePlayer;
   roll?: GameRoll;
   rolling: boolean;
-  playerId: string;
-  playerPosition: number;
 }
 const palette: Record<string,string> = {
   'marrón':'#874b30','celeste':'#42b7dc','rosa':'#dd4aa1','naranja':'#ec7a31',
