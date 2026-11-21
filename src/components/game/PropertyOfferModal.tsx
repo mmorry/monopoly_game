@@ -16,10 +16,6 @@ export default function PropertyOfferModal({state,actions,disabled}:Props) {
   if(!space || !['property','railroad','utility'].includes(space.type) ||
     space.ownerId || space.price===null || space.price<=0 || player?.inJail ||
     state.auctions.some(a=>a.position===space.position && a.status==='open'))return null;
-  // Already declined and finished the auction for this exact landing.
-  const rolled=state.rolls.find(r=>r.playerId===state.me.id && r.turn===room.turnNumber && r.to===space.position);
-  const recentAuction=state.auctions.some(a=>a.position===space.position && a.status!=='open');
-  if(rolled && recentAuction)return null;
   const related=space.group ? state.spaces.filter(s=>s.group===space.group && s.type==='property') : [];
   return <div className="fixed inset-0 z-40 flex items-center justify-center bg-stone-950/75 p-4 backdrop-blur-sm">
     <section role="dialog" aria-modal="true" aria-labelledby="buy-property-title"
