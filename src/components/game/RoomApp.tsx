@@ -122,6 +122,11 @@ export default function RoomApp() {
   const waiting = snapshot?.room.status === 'waiting';
   const finished = snapshot?.room.status === 'finished';
   const current = snapshot?.room.currentPlayerId === snapshot?.me.id;
+  const latestRoll = snapshot?.rolls[0];
+  const latestSpace = latestRoll && snapshot?.spaces.find(s=>s.position===latestRoll.to);
+  const latestOwner = latestSpace && snapshot?.players.find(p=>p.id===latestSpace.ownerId);
+  const latestPlayer = latestRoll && snapshot?.players.find(p=>p.id===latestRoll.playerId);
+
 
   async function recover(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -208,6 +213,16 @@ export default function RoomApp() {
               {t}</button>
           )}
         </nav>
+        {!waiting && latestRoll && latestSpace && <div role="status" aria-live="polite"
+          className="mb-4 rounded-xl border border-sky-200 bg-sky-50 p-3 text-sm text-sky-950">
+          <strong>{latestPlayer?.alias||'Jugador'}:</strong> dados {latestRoll.d1} + {latestRoll.d2} =
+          {' '}{latestRoll.d1+latestRoll.d2} · casilla {latestRoll.to}: <strong>{latestSpace.name}</strong>.
+          {latestOwner && <span> Propiedad de <strong>{latestOwner.alias}</strong>
+            {latestSpace.mortgaged?' (hipotecada: no genera alquiler)':
+              latestOwner.id===latestRoll.playerId?' (propia)':' (alquiler al propietario)'}.</span>}
+          {!latestOwner && ['property','railroad','utility'].includes(latestSpace.type) &&
+            <span> Sin dueño: compra o subasta.</span>}
+        </div>}
         <div aria-live="polite" role="status" className="mb-4 space-y-2">
           {error && <p className="rounded-xl border border-red-200 bg-red-50 p-3 text-sm font-semibold text-red-800">{error}</p>}
           {message && <p className="rounded-xl border border-emerald-200 bg-emerald-50 p-3 text-sm text-emerald-900">{message}</p>}
