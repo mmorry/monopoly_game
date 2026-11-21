@@ -25,9 +25,6 @@ export default function GamePanel({ state, actions, disabled, mode }: Props) {
     try { await actions.act('roll',data); }
     finally { window.setTimeout(()=>setRolling(false),650); }
   }
-  const lastLanding=lastRoll ? state.spaces.find(s=>s.position===lastRoll.to) : null;
-  const lastOwner=state.players.find(p=>p.id===lastLanding?.ownerId);
-  const rolledBy=state.players.find(p=>p.id===lastRoll?.playerId);
   const colorGroups:Record<string,string>={
     marrón:'#8b4513',celeste:'#38bdf8',rosa:'#ec4899',naranja:'#f97316',
     rojo:'#dc2626',amarillo:'#eab308',verde:'#15803d',azul:'#1d4ed8'
@@ -120,7 +117,11 @@ export default function GamePanel({ state, actions, disabled, mode }: Props) {
           </div>
           {lastRoll && <p className="text-xl font-black text-amber-950">{lastRoll.d1} + {lastRoll.d2} = {lastRoll.d1+lastRoll.d2}</p>}
           {lastRoll && <p className="text-xs font-bold text-amber-950">
-            Ficha {lastRoll.from} → {lastRoll.to} · Avanza {lastRoll.d1+lastRoll.d2} casillas
+            Ficha {lastRoll.from} → {lastRoll.to} · {
+              (lastRoll.from+lastRoll.d1+lastRoll.d2)%40===lastRoll.to
+                ? 'Avanza '+(lastRoll.d1+lastRoll.d2)+' casillas'
+                : 'Movimiento especial: a casilla '+lastRoll.to
+            }
             {lastRoll.d1===lastRoll.d2?' · Dobles':''}
           </p>}
         </div>}
@@ -176,14 +177,6 @@ export default function GamePanel({ state, actions, disabled, mode }: Props) {
       </div>}
     </section>
 
-    {lastRoll && lastLanding && <section role="status" aria-live="polite"
-       className="rounded-xl border-2 border-sky-200 bg-sky-50 p-4 text-sm text-sky-950">
-      <strong>{rolledBy?.alias||'Un jugador'}</strong> cayó en <strong>{lastLanding.name}</strong>
-      {lastOwner ? <> · Propiedad de <strong>{lastOwner.alias}</strong>{lastLanding.mortgaged?' (hipotecada, sin alquiler)':''}.
-        {lastLanding.ownerId!==lastRoll.playerId && !lastLanding.mortgaged
-          ? ' Hay que pagar el alquiler correspondiente.' : ''}</>
-        : ' · Sin propietario.'}
-    </section>}
     <section className={card}>
       <h2 className="mb-4 text-xl font-black text-emerald-950">Jugadores y saldos</h2>
       <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
