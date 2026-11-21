@@ -41,6 +41,7 @@ export interface RoomInfo {
   status: 'waiting'|'active'|'finished';
   maxPlayers: number;
   diceMode: 'virtual'|'physical';
+  cardMode: 'virtual'|'physical';
   initialBalance: number;
   goBonus: number;
   bailAmount: number;
