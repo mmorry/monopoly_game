@@ -136,7 +136,7 @@ export default function RoomApp() {
       await gameRpc('game_leave_room', { p_code: session.code, p_token: session.token });
       clearSession(session.code);
       window.location.assign('/');
-    }, '¿Abandonar esta sala?') : Promise.resolve()
+    }, '¿Abandonar definitivamente? Perderás tu plaza y tu sesión actual. Para salir sin perder tu ficha, usa «Salir temporalmente».') : Promise.resolve()
   }), [session, perform]);
 
   const me = snapshot?.players.find(p => p.id === snapshot.me.id);
@@ -261,8 +261,9 @@ export default function RoomApp() {
             <p className="mt-1 text-sm text-stone-600">Juegas como <strong>{me.alias}</strong>{host ? ' · Anfitrión' : ''}</p>
             <button type="button" className="mt-2 text-xs font-semibold text-emerald-800 underline"
               onClick={()=>void copyPlayerAccess()}>
-              {accessCopied?'Clave de acceso copiada':'Guardar mi clave de acceso / reingreso'}
+              {accessCopied?'Clave de acceso copiada':'Guardar mi clave privada para reingresar'}
             </button>
+            <span className="ml-2 text-xs text-stone-500">No la compartas: permite usar tu ficha desde otro dispositivo.</span>
           </div>
           <span className={'rounded-full px-3 py-1.5 text-xs font-bold ' +
             (connection==='connected' ? 'bg-emerald-100 text-emerald-900' : 'bg-stone-200 text-stone-700')}>
