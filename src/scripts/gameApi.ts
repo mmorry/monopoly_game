@@ -147,7 +147,9 @@ export interface CardTotals {
   cancelled: number;
 }
 export interface CardSnapshot { cards:CardChallenge[]; totals:CardTotals }
+export interface JailPass {deck:'chaman'|'tombola';number:number}
 export interface GameSnapshot {
+  myJailPasses: JailPass[];
   room: RoomInfo;
   me: { id: string; role: 'host'|'player' };
   players: GamePlayer[];
@@ -217,11 +219,12 @@ export function money(amount: number): string {
 }
 export async function getSnapshot(session: GameSession): Promise<GameSnapshot> {
   const params={ p_code: session.code, p_token: session.token };
-  const [room, cards]=await Promise.all([
+  const [room, cards, passes]=await Promise.all([
     gameRpc<GameSnapshot>('game_snapshot',params),
-    gameRpc<CardSnapshot>('game_card_snapshot',params)
+    gameRpc<CardSnapshot>('game_card_snapshot',params),
+    gameRpc<JailPass[]>('game_my_jail_passes',params)
   ]);
-  return { ...room, cards:cards.cards, cardTotals:cards.totals };
+  return { ...room, cards:cards.cards, cardTotals:cards.totals, myJailPasses:passes };
 }
 export function act(session: GameSession, action: string, data: Record<string, unknown> = {}) {
   return gameRpc<{ ok: boolean }>('game_action', {
