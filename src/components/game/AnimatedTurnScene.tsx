@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useRef, useState, type CSSProperties } from 'react';
 import type { GamePlayer, GameRoll, GameSpace } from '../../scripts/gameApi';
 
 interface Props {
@@ -34,8 +34,8 @@ function Tile({space,position,center,side}:{space:GameSpace|undefined;position:n
     type==='tax'?'#cf5656':type==='railroad'?'#526b94':
     type==='utility'?'#4a8c9b':type==='start'?'#16876b':'#768397');
   return <div className={'mp-track-tile mp-track-tile-'+Math.abs(side)+(center?' mp-track-active':'')}
-    style={{'--tile-color':color,'--offset':String(side)} as React.CSSProperties}
-    aria-hidden={!center}>
+    style={{'--tile-color':color} as CSSProperties}
+    data-offset={side} aria-hidden={!center}>
     <div className="mp-track-band"/>
     <div className="mp-track-inner">
       <span className="mp-track-number">CASILLA {position}</span>
@@ -137,10 +137,13 @@ export default function AnimatedTurnScene({spaces,players,roll,rolling}:Props){
       border-radius:50%;background:radial-gradient(ellipse,#396b4880 0%,transparent 70%);transform:rotateX(58deg)}
     .mp-rail{position:absolute;inset:0;transform-style:preserve-3d;display:flex;align-items:center;justify-content:center}
     .mp-track-tile{position:absolute;top:94px;left:50%;width:min(40vw,153px);height:161px;
-      transform-origin:center bottom;transform:translateX(calc(-50% + var(--offset)*110px)) translateZ(calc((2 - var(--offset)*var(--offset))*-34px))
-       rotateY(calc(var(--offset)*-12deg)) scale(calc(1 - .1*var(--offset)*var(--offset)));
+      transform-origin:center bottom;transform:translateX(-50%) translateZ(0) scale(1.02);
       border-radius:15px;background:linear-gradient(150deg,#fff 30%,#e7eee9 100%);
       border:2px solid #fff;box-shadow:0 12px 17px #23432b42;overflow:hidden;transition:transform .15s ease,filter .15s ease}
+    .mp-track-tile[data-offset="-2"]{transform:translateX(calc(-50% - 219px)) translateZ(-120px) rotateY(24deg) scale(.76)}
+    .mp-track-tile[data-offset="-1"]{transform:translateX(calc(-50% - 115px)) translateZ(-50px) rotateY(13deg) scale(.88)}
+    .mp-track-tile[data-offset="1"]{transform:translateX(calc(-50% + 115px)) translateZ(-50px) rotateY(-13deg) scale(.88)}
+    .mp-track-tile[data-offset="2"]{transform:translateX(calc(-50% + 219px)) translateZ(-120px) rotateY(-24deg) scale(.76)}
     .mp-track-tile-2{opacity:.54;filter:blur(.6px)}
     .mp-track-tile-1{opacity:.83}
     .mp-track-active{z-index:3;filter:brightness(1.03);box-shadow:0 16px 27px #23432b6a,0 0 0 3px #f6de8d}
@@ -190,6 +193,8 @@ export default function AnimatedTurnScene({spaces,players,roll,rolling}:Props){
     @media(min-width:600px){.mp-stage{height:355px}.mp-track-tile{width:160px;height:175px;top:100px}
       .mp-pawn-wrap{bottom:18px}.mp-track-name{font-size:12px}}
     @media(max-width:359px){.mp-stage{height:292px}.mp-track-tile{width:124px;height:150px;top:88px}
+      .mp-track-tile[data-offset="-1"]{transform:translateX(calc(-50% - 97px)) translateZ(-50px) rotateY(13deg) scale(.88)}
+      .mp-track-tile[data-offset="1"]{transform:translateX(calc(-50% + 97px)) translateZ(-50px) rotateY(-13deg) scale(.88)}
       .mp-track-name{font-size:10px}.mp-pawn{width:83px;height:103px}.mp-pawn-wrap{bottom:10px}}
     @media(prefers-reduced-motion:reduce){.mp-die-rolling,.mp-pawn-moving .mp-pawn{animation:none!important}
       .mp-track-tile,.mp-die-cube{transition:none!important}}
