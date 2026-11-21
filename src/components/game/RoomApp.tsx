@@ -58,6 +58,7 @@ export default function RoomApp() {
   const [sceneMoving,setSceneMoving]=useState(false);
   const initialRollSeen=useRef(false);
   const lastSceneRollId=useRef<number|undefined>(undefined);
+  const sceneTimer=useRef<ReturnType<typeof setTimeout>|null>(null);
   const busyLoad = useRef(false);
   const refreshQueued = useRef(false);
 
@@ -78,6 +79,20 @@ export default function RoomApp() {
       do {
         refreshQueued.current = false;
         const data = await getSnapshot(session);
+        const newest=data.rolls[0];
+        // Bloquear modales y tarjeta de llegada antes de pintar la nueva tirada,
+        // evitando que aparezcan durante los dados y el recorrido.
+        if (!initialRollSeen.current) {
+          initialRollSeen.current=true;
+          lastSceneRollId.current=newest?.id;
+        } else if (newest && lastSceneRollId.current!==newest.id) {
+          lastSceneRollId.current=newest.id;
+          const normal=(newest.from+newest.d1+newest.d2)%40===newest.to;
+          const time=normal ? 750+175*(newest.d1+newest.d2)+420 : 1350;
+          if (sceneTimer.current) clearTimeout(sceneTimer.current);
+          setSceneMoving(true);
+          sceneTimer.current=setTimeout(()=>{setSceneMoving(false);sceneTimer.current=null;},time);
+        }
         setSnapshot(data);
         setError('');
       } while (refreshQueued.current);
@@ -166,24 +181,7 @@ export default function RoomApp() {
   const finished = snapshot?.room.status === 'finished';
   const current = snapshot?.room.currentPlayerId === snapshot?.me.id;
   const latestRoll = snapshot?.rolls[0];
-  useEffect(()=>{
-    if(!snapshot)return;
-    const activeRoll=snapshot.rolls[0];
-    if(!initialRollSeen.current){
-      initialRollSeen.current=true;
-      lastSceneRollId.current=activeRoll?.id;
-      return;
-    }
-    if(!activeRoll || lastSceneRollId.current===activeRoll.id)return;
-    lastSceneRollId.current=activeRoll.id;
-    if(activeRoll.playerId!==snapshot.me.id){
-      setSceneMoving(false);
-      return;
-    }
-    setSceneMoving(true);
-    const timer=window.setTimeout(()=>setSceneMoving(false),journeyMs(activeRoll));
-    return ()=>window.clearTimeout(timer);
-  },[snapshot?.rolls[0]?.id]);
+  useEffect(()=>()=>{if(sceneTimer.current)clearTimeout(sceneTimer.current);},[]);
   const latestSpace = latestRoll && snapshot?.spaces.find(s=>s.position===latestRoll.to);
   const latestOwner = latestSpace && snapshot?.players.find(p=>p.id===latestSpace.ownerId);
   const latestPlayer = latestRoll && snapshot?.players.find(p=>p.id===latestRoll.playerId);
