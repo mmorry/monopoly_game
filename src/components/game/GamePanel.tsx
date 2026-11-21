@@ -3,14 +3,14 @@ import { money, type GameSnapshot, type GamePlayer } from '../../scripts/gameApi
 import type { GameActions } from './RoomApp';
 import CardChallengesPanel from './CardChallengesPanel';
 import AnimatedTurnScene from './AnimatedTurnScene';
-interface Props { state: GameSnapshot; actions: GameActions; disabled: boolean; mode?: 'bank' }
+interface Props { state: GameSnapshot; actions: GameActions; disabled: boolean; mode?: 'bank'; sceneMoving?: boolean }
 const field='min-h-11 w-full rounded-xl border-2 border-stone-300 bg-white px-3 py-2 text-base text-stone-950 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-emerald-700';
 const btn='rounded-xl bg-emerald-700 px-4 py-3 text-sm font-black text-white hover:bg-emerald-800 disabled:cursor-not-allowed disabled:opacity-40';
 const card='min-w-0 rounded-2xl border border-stone-200 bg-white p-5 shadow-sm sm:p-6';
 function sortedPlayers(state: GameSnapshot) {
   return [...state.players].sort((a,b) => (a.order??99)-(b.order??99) || (a.role==='host'?-1:1));
 }
-export default function GamePanel({ state, actions, disabled, mode }: Props) {
+export default function GamePanel({ state, actions, disabled, mode, sceneMoving=false }: Props) {
   const players=sortedPlayers(state);
   const me=players.find(p=>p.id===state.me.id);
   const host=state.me.role==='host';
@@ -94,7 +94,7 @@ export default function GamePanel({ state, actions, disabled, mode }: Props) {
   if(mode==='bank') return <div className="space-y-5">{bankPanel}</div>;
 
   return <div className="grid min-w-0 w-full gap-5">
-    {state.cards.some(challenge=>challenge.outcome==='pending') &&
+    {!sceneMoving && state.cards.some(challenge=>challenge.outcome==='pending') &&
       <CardChallengesPanel state={state} actions={actions} disabled={disabled} compact/>}
     <section className={card}>
       <div className="text-center">
