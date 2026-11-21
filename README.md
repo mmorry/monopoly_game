@@ -25,7 +25,7 @@ El frontend estático solo utiliza variables públicas. No incluir claves secret
 
 ## Edición F3182
 
-El catálogo de la edición está en database/013_f3182_verified_catalog.sql: 40 casillas y dos barajas de 16 cartas. Las posiciones exactas y los precios de propiedades todavía no se han verificado con las tarjetas de F3182. El anfitrión puede editar casillas sin dueño. No inventar valores ni mezclar la edición de 2010.
+El catálogo de la edición está en database/013_f3182_verified_catalog.sql: 40 casillas y dos barajas de 16 cartas. Las 28 tarjetas físicas ya fueron verificadas mediante cinco fotos del usuario y se incorporaron en database/015_f3182_physical_title_cards.sql. Contienen alquileres completos, grupos de color, costos de casas/hoteles y multiplicadores de servicios. El anfitrión puede asignar una tarjeta oficial a una posición compatible del tablero; la app carga automáticamente sus importes. Las posiciones exactas, precios de compra e hipotecas siguen sin verificarse hasta recibir la foto del tablero abierto. No inventar valores ni mezclar la edición de 2010.
 
 ## Retos: El Chamán y La Tómbola
 
@@ -42,7 +42,7 @@ Los textos e importes de las 32 cartas físicas todavía no están precargados. 
 
 ## Gestión SQL
 
-Todos los scripts se conservan en el directorio database/ y se ejecutan de manera controlada y numerada, sin migraciones automáticas. No modificar ni repetir scripts previamente aplicados. Versiones 001 a 014 incluyen salas, credenciales, juego, banca, propiedades, subastas, catálogo y cartas.
+Todos los scripts se conservan en el directorio database/ y se ejecutan de manera controlada y numerada, sin migraciones automáticas. No modificar ni repetir scripts previamente aplicados. Versiones 001 a 015 incluyen salas, credenciales, juego, banca, propiedades, subastas, cartas y las 28 tarjetas F3182 verificadas. Las fotos originales no se publican en el repositorio.
 
 ## Validación del módulo Cartas — noviembre de 2026
 
