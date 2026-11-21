@@ -231,7 +231,7 @@ export default function RoomApp() {
     }
   }
 
-  return <div className="min-h-dvh bg-[#f7f0df] text-stone-950">
+  return <div className="min-h-dvh w-full min-w-0 overflow-x-clip bg-[#f7f0df] text-stone-950">
     <header className="border-b border-emerald-800 bg-emerald-950 text-white">
       <div className="mx-auto flex h-[68px] max-w-6xl items-center gap-2 px-3 sm:px-8">
         <a href="/" aria-label="Inicio" className="grid size-9 shrink-0 place-items-center rounded-xl bg-emerald-700 text-sm font-black text-white shadow-sm">M</a>
@@ -251,7 +251,7 @@ export default function RoomApp() {
         </button>}
       </div>
     </header>
-    <main className="mx-auto max-w-6xl px-4 pb-32 pt-4 sm:px-8">
+    <main className="mx-auto w-full min-w-0 max-w-6xl px-4 pb-32 pt-4 sm:px-8">
       {!code && <section className={panel}>
         <h1 className="text-2xl font-bold">Código de sala no indicado</h1>
         <p className="mt-2 text-stone-700">Abre el enlace que te compartieron o crea una sala nueva.</p>
@@ -282,7 +282,7 @@ export default function RoomApp() {
         </form>
       </section>}
       {code && session && !snapshot && <p role="status" className="rounded-xl bg-white p-5">Cargando partida y verificando tu sesión...</p>}
-      {snapshot && me && <div>
+      {snapshot && me && <div className="min-w-0 w-full">
         {openAuction && tab==='mesa' && <button type="button" onClick={()=>setTab('negociar')}
           className="mb-4 flex w-full items-center justify-between rounded-xl border border-amber-300 bg-amber-100 p-3 text-sm font-bold text-amber-950">
           <span>Subasta activa · {snapshot.spaces[openAuction.position]?.name||'Propiedad'}</span>
