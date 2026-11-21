@@ -9,8 +9,10 @@ import MarketPanel from './MarketPanel';
 import CardChallengesPanel from './CardChallengesPanel';
 import VirtualCardModal from './VirtualCardModal';
 import PropertyOfferModal from './PropertyOfferModal';
-import { journeyMs } from './AnimatedTurnScene';
+import SpecialCardDiceModal from './SpecialCardDiceModal';
+import { journeyMs, cardJourneyMs } from './AnimatedTurnScene';
 
+export interface SpecialDiceResult {ok:boolean;cardId:number;d1:number;d2:number;total:number;rent:number}
 export interface GameActions {
   act: (action: string, data?: Record<string, unknown>) => Promise<void>;
   property: (action: string, position: number) => Promise<void>;
@@ -19,6 +21,7 @@ export interface GameActions {
   card: (action: string, data: Record<string, unknown>) => Promise<void>;
   revealVirtualCard: (id:number) => Promise<void>;
   finishVirtualCard: (id:number) => Promise<void>;
+  specialCardDice: (id:number,d1?:number,d2?:number)=>Promise<SpecialDiceResult|null>;
   useJailPass: (deck:'chaman'|'tombola') => Promise<void>;
   declineProperty: () => Promise<void>;
   cardMode: (mode: 'physical'|'virtual') => Promise<void>;
@@ -58,6 +61,8 @@ export default function RoomApp() {
   const [sceneMoving,setSceneMoving]=useState(false);
   const initialRollSeen=useRef(false);
   const lastSceneRollId=useRef<number|undefined>(undefined);
+  const initialCardSeen=useRef(false);
+  const lastCardMoveId=useRef<number|undefined>(undefined);
   const sceneTimer=useRef<ReturnType<typeof setTimeout>|null>(null);
   const busyLoad = useRef(false);
   const refreshQueued = useRef(false);
@@ -98,6 +103,20 @@ export default function RoomApp() {
             setSceneMoving(false);
             sceneTimer.current=null;
           }
+        }
+        const lastMovedCard=data.cards.find(card=>card.playerId===data.me.id &&
+          card.outcome==='completed' && card.targetPosition!==null && card.resolvedAt!==null);
+        if(!initialCardSeen.current){
+          initialCardSeen.current=true;
+          lastCardMoveId.current=lastMovedCard?.id;
+        } else if(lastMovedCard && lastCardMoveId.current!==lastMovedCard.id){
+          lastCardMoveId.current=lastMovedCard.id;
+          if(sceneTimer.current)clearTimeout(sceneTimer.current);
+          setSceneMoving(true);
+          sceneTimer.current=setTimeout(()=>{
+            setSceneMoving(false);
+            sceneTimer.current=null;
+          },cardJourneyMs(lastMovedCard.position,lastMovedCard.targetPosition!,lastMovedCard.cardNumber));
         }
         setSnapshot(data);
         setError('');
@@ -151,6 +170,22 @@ export default function RoomApp() {
     finishVirtualCard: (id) => session ? perform(() => gameRpc('game_finish_virtual_card',{
       p_code:session.code,p_token:session.token,p_card_id:id
     })) : Promise.resolve(),
+    specialCardDice: async (id,d1,d2) => {
+      if(!session)return null;
+      setBusy(true);
+      setError('');
+      try{
+        const result=await gameRpc<SpecialDiceResult>('game_special_card_dice',{
+          p_code:session.code,p_token:session.token,p_card_id:id,
+          p_die1:d1??null,p_die2:d2??null
+        });
+        await refresh();
+        return result;
+      }catch(cause){
+        setError(cause instanceof Error ? cause.message : 'No se pudo registrar la tirada especial.');
+        return null;
+      }finally{setBusy(false)}
+    },
     useJailPass: (deck) => session ? perform(() => gameRpc('game_use_jail_pass',{
       p_code:session.code,p_token:session.token,p_deck:deck
     })) : Promise.resolve(),
@@ -179,7 +214,7 @@ export default function RoomApp() {
       clearSession(session.code);
       window.location.assign('/');
     }, '¿Abandonar definitivamente? Perderás tu plaza y tu sesión actual. Para salir sin perder tu ficha, usa «Salir temporalmente».') : Promise.resolve()
-  }), [session, perform]);
+  }), [session, perform, refresh]);
 
   const me = snapshot?.players.find(p => p.id === snapshot.me.id);
   const host = snapshot?.me.role === 'host';
@@ -331,6 +366,7 @@ export default function RoomApp() {
         {tab==='cartas' && !waiting && <CardChallengesPanel state={snapshot} actions={actions} disabled={busy}/>}
         {!sceneMoving && <VirtualCardModal state={snapshot} actions={actions} disabled={busy} error={error}/>}
         {!sceneMoving && <PropertyOfferModal state={snapshot} actions={actions} disabled={busy}/>}
+        {!sceneMoving && <SpecialCardDiceModal state={snapshot} actions={actions} disabled={busy} error={error}/>}
         {tab==='historial' && <section className={panel}>
           <h2 className="text-xl font-black text-emerald-950">Registro de la partida</h2>
           {snapshot.ledger.length>0 && <div className="mt-4">
