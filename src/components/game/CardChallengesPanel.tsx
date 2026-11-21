@@ -120,7 +120,7 @@ export default function CardChallengesPanel({state,actions,disabled,compact=fals
              {effects.map(([v,label])=><option key={v} value={v}>{label}</option>)}
            </select></label>
        </div>
-       {moneyEffect && <label className="grid gap-1 text-sm font-semibold">Importe de la tarjeta (S/)
+       {moneyEffect && <label className="grid gap-1 text-sm font-semibold">Importe de la tarjeta (M)
          <input className={input} required type="number" min="1" max="1000000000" step="1"
            value={numberAmount} onChange={e=>setNumberAmount(e.target.value)} placeholder="Ej. 50"/></label>}
        {otherEffect && <label className="grid gap-1 text-sm font-semibold">Otro jugador
