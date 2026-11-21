@@ -96,6 +96,24 @@ export default function CardChallengesPanel({state,actions,disabled,compact=fals
  }
 
  const summary=state.cardTotals;
+ if(state.room.cardMode==='virtual'){
+   if(compact)return null;
+   return <section className={card}>
+     <h2 className="text-xl font-black text-emerald-950">Historial de cartas virtuales</h2>
+     <p className="mt-2 text-sm text-stone-600">Las cartas se revelan en un modal al caer en El Chamán o La Tómbola. Los efectos se registran automáticamente cuando se finaliza la carta.</p>
+     <div className="mt-4 flex flex-wrap gap-3 text-sm font-semibold">
+       <span>Chamán: {summary.chaman}</span><span>Tómbola: {summary.tombola}</span>
+       <span>Resueltas: {summary.completed}</span>
+     </div>
+     <ol className="mt-4 grid gap-3">
+       {state.cards.map(item=><li key={item.id} className="rounded-xl border border-stone-200 p-3">
+         <p className="font-bold">{getDeck(item.deck)} · {item.title||'Carta pendiente'}</p>
+         <p className="text-xs text-stone-600">Turno {item.turn} · {state.players.find(p=>p.id===item.playerId)?.alias||'Jugador'} · {getOutcome(item.outcome)}</p>
+         {item.outcome==='completed'&&<p className="mt-1 text-sm text-stone-700">{item.instruction}</p>}
+       </li>)}
+     </ol>
+   </section>;
+ }
  return <div className="grid gap-5">
    <section className={card}>
      <div className="flex flex-wrap items-start justify-between gap-3">
