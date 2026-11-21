@@ -4,6 +4,7 @@ import type { GamePlayer, GameRoll, GameSpace } from '../../scripts/gameApi';
 interface Props {
   spaces: GameSpace[];
   players: GamePlayer[];
+  player?: GamePlayer;
   roll?: GameRoll;
   rolling: boolean;
 }
@@ -11,6 +12,10 @@ const palette: Record<string,string> = {
   'marrón':'#874b30','celeste':'#42b7dc','rosa':'#dd4aa1','naranja':'#ec7a31',
   'rojo':'#ca3b40','amarillo':'#dfb92c','verde':'#358f64','azul':'#3157a8'
 };
+export const DICE_REVEAL_MS=1450;
+export const STEP_MS=300;
+export const SCENE_SETTLE_MS=420;
+export function journeyMs(roll:GameRoll){const distance=((roll.from+roll.d1+roll.d2)%40)===roll.to?roll.d1+roll.d2:1;return DICE_REVEAL_MS+distance*STEP_MS+SCENE_SETTLE_MS;}
 const pawnColors=['#047857','#be123c','#2563eb','#7c3aed','#c2410c','#0f766e'];
 function positive(n:number){return ((n%40)+40)%40}
 function tileSymbol(space:GameSpace | undefined){
@@ -87,10 +92,10 @@ function Die({value,spin,index}:{value:number;spin:boolean;index:number}){
   </div>;
 }
 
-export default function AnimatedTurnScene({spaces,players,roll,rolling}:Props){
+export default function AnimatedTurnScene({spaces,players,player,roll,rolling}:Props){
   const firstRollRef=useRef(roll?.id);
   const [phase,setPhase]=useState<'idle'|'dice'|'travel'>('idle');
-  const [step,setStep]=useState(roll?.to??0);
+  const [step,setStep]=useState(player?.position??0);
   const [rollId,setRollId]=useState(roll?.id);
   const total=roll?roll.d1+roll.d2:0;
   const normal=!!roll && positive(roll.from+total)===roll.to;
@@ -101,22 +106,22 @@ export default function AnimatedTurnScene({spaces,players,roll,rolling}:Props){
     setStep(roll.from);
     setPhase('dice');
     const timers:ReturnType<typeof setTimeout>[]=[];
-    const duration=normal?Math.min(total,12):1;
+    const duration=normal?total:1;
     timers.push(setTimeout(()=>{
       setPhase('travel');
       for(let i=1;i<=duration;i++){
         timers.push(setTimeout(()=>{
           setStep(normal?positive(roll.from+i):roll.to);
           if(i===duration)setPhase('idle');
-        },i*175));
+        },i*STEP_MS));
       }
-    },750));
+    },DICE_REVEAL_MS));
     return ()=>timers.forEach(clearTimeout);
   },[roll?.id,roll?.from,roll?.to,normal,total]);
   // Avoid replaying an old roll when a user reloads the page or reconnects.
-  const activePosition=roll && roll.id===rollId ? step : (roll?.to??players.find(p=>p.position===0)?.position??0);
-  const actor=players.find(p=>p.id===roll?.playerId);
-  const actorIndex=players.findIndex(p=>p.id===actor?.id);
+  const activePosition=roll && roll.id===rollId && phase!=='idle' ? step : (player?.position??0);
+  const actor=player;
+  const actorIndex=players.findIndex(p=>p.id===player?.id);
   const actorColor=pawnColors[Math.max(0,actorIndex)%pawnColors.length];
   const moving=phase==='travel';
   const diceMoving=rolling||phase==='dice';
@@ -169,7 +174,7 @@ export default function AnimatedTurnScene({spaces,players,roll,rolling}:Props){
     .mp-die-wrap{width:56px;height:56px;perspective:400px;filter:drop-shadow(0 7px 6px #213d3360)}
     .mp-die-cube{width:54px;height:54px;position:relative;transform-style:preserve-3d;
       transition:transform .4s ease-out}
-    .mp-die-rolling{animation:mp-die-spin 720ms cubic-bezier(.18,.68,.2,1.14) infinite}
+    .mp-die-rolling{animation:mp-die-spin 850ms cubic-bezier(.18,.68,.2,1.14) infinite}
     .mp-die-side{width:54px;height:54px;position:absolute;inset:0;border:2px solid #c1c8bb;
       border-radius:9px;background:linear-gradient(145deg,#fff,#f4f4ed 70%,#d2dacf);
       display:grid;grid-template-columns:repeat(3,1fr);grid-template-rows:repeat(3,1fr);padding:8px;gap:1px}
@@ -201,7 +206,7 @@ export default function AnimatedTurnScene({spaces,players,roll,rolling}:Props){
     `}</style>
     <div className="mp-stage">
       <span className="mp-stage-heading">RECORRIDO DE LA FICHA</span>
-      {roll&&<span className="mp-stage-count">{phase==='idle'?'Llegada':phase==='dice'?'Lanzando…':'Avanzando…'}</span>}
+      <span className="mp-stage-count">{rolling||phase==='dice'?'Dados en movimiento':moving?'Avanzando…':'Tu ubicación'}</span>
       <div className="mp-stage-floor"/>
       <div className="mp-rail">
         {([-2,-1,0,1,2] as const).map(offset=>{
@@ -214,20 +219,20 @@ export default function AnimatedTurnScene({spaces,players,roll,rolling}:Props){
     </div>
     <div className="mp-caption">
       <span>{actor?.alias||'Ficha en espera'}</span>
-      <span>{roll?('#'+roll.from+' → #'+(moving?activePosition:roll.to)):'Salida · casilla 0'}</span>
+      <span>Casilla #{activePosition}{moving?' · avanzando':''}</span>
     </div>
     <div className="mp-dice-bay">
       <p className="text-[11px] font-black uppercase tracking-[.18em] text-emerald-800">
-        {diceMoving?'Lanzando dados…':roll?'Resultado de los dados':'Dados de la partida'}
+        {diceMoving?'Dados girando y rebotando…':roll?'Tu última tirada':'Dados de tu partida'}
       </p>
       <div className="mp-dice-pair">
         <Die value={roll?.d1??1} spin={diceMoving} index={0}/>
         <Die value={roll?.d2??1} spin={diceMoving} index={1}/>
       </div>
       <p className="text-xl font-black text-emerald-950" aria-live="polite">
-        {roll?roll.d1+' + '+roll.d2+' = '+total:'Lanza los dados para comenzar'}
+        {diceMoving?'Girando…':roll?roll.d1+' + '+roll.d2+' = '+total:'Lanza los dados para comenzar'}
       </p>
-      {roll&&<p className="mt-1 text-xs font-bold text-stone-500">
+      {roll&&!diceMoving&&<p className="mt-1 text-xs font-bold text-stone-500">
         {normal?'Movimiento de '+total+' casillas':'Movimiento especial hacia #'+roll.to}
         {roll.d1===roll.d2?' · Dobles':''}
       </p>}
