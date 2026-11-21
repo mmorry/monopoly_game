@@ -136,7 +136,7 @@ export default function CardChallengesPanel({state,actions,disabled,compact=fals
          <select aria-label="Tarjeta física F3182" className={input} value={selectedPhysical}
            disabled={state.room.cardMode==='virtual'}
            onChange={e=>choosePhysical(e.target.value)}>
-           <option value="">Selecciona la carta que apareció en el mazo físico</option>
+           <option value="">{state.room.cardMode==='virtual'?'Cargando carta asignada por el servidor…':'Selecciona la carta que apareció en el mazo físico'}</option>
            {catalogForDeck.map(item=><option key={item.number} value={item.deck+':'+item.number}>
              {String(item.number).padStart(2,'0')} · {item.title}</option>)}
          </select>
