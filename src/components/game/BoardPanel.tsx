@@ -134,6 +134,24 @@ export default function BoardPanel({state,actions,disabled}:Props) {
         })}
       </div>
     </section>
+    <section className={card}>
+      <h2 className="text-xl font-black text-emerald-950">Propiedades por grupo de color</h2>
+      <p className="mt-1 text-sm text-stone-600">Cada grupo conserva sus casillas oficiales F3182; se muestran sus dueños en tiempo real.</p>
+      <div className="mt-4 grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
+        {Object.entries(groups).map(([group,color])=><div key={group} className="overflow-hidden rounded-xl border border-stone-200 bg-stone-50">
+          <h3 className="p-2 text-sm font-black capitalize text-white" style={{backgroundColor:color}}>{group}</h3>
+          <ul className="divide-y divide-stone-200">
+            {state.spaces.filter(s=>s.type==='property' && s.group===group).map(s=>{
+              const p=state.players.find(player=>player.id===s.ownerId);
+              return <li key={s.position} className="flex flex-wrap items-center justify-between gap-1 px-3 py-2 text-xs">
+                <span className="font-bold text-stone-800">{s.name}</span>
+                <span className="text-stone-600">{p?p.alias:'Libre'}{s.mortgaged?' · Hipotecada':''}</span>
+              </li>;
+            })}
+          </ul>
+        </div>)}
+      </div>
+    </section>
     {selected && <section className={card}>
       <div className="flex flex-wrap items-start justify-between gap-4">
         <div>
