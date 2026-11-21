@@ -29,6 +29,17 @@ export interface GameActions {
   leave: () => Promise<void>;
 }
 const panel = 'rounded-2xl border border-stone-200 bg-white p-5 shadow-sm sm:p-6';
+function NavigationIcon({kind}:{kind:'mesa'|'tablero'|'banco'|'negociar'|'cartas'|'historial'}){
+  const common={fill:'none',stroke:'currentColor',strokeWidth:1.8,strokeLinecap:'round' as const,strokeLinejoin:'round' as const};
+  return <svg viewBox="0 0 24 24" width="22" height="22" aria-hidden="true" {...common}>
+    {kind==='mesa'&&<><rect x="3" y="3" width="18" height="18" rx="4"/><circle cx="8" cy="8" r="1" fill="currentColor" stroke="none"/><circle cx="16" cy="16" r="1" fill="currentColor" stroke="none"/><circle cx="12" cy="12" r="1" fill="currentColor" stroke="none"/></>}
+    {kind==='tablero'&&<><rect x="3" y="3" width="18" height="18" rx="3"/><path d="M12 3v18M3 12h18"/></>}
+    {kind==='banco'&&<><path d="M3 9 12 4l9 5M5 10h14M5 19h14M3 21h18M7 10v9m5-9v9m5-9v9"/></>}
+    {kind==='negociar'&&<><path d="M4 7h16l-4-4m4 4-4 4M20 17H4l4-4m-4 4 4 4"/></>}
+    {kind==='cartas'&&<><rect x="5" y="3" width="14" height="18" rx="2"/><path d="M9 8h6M9 12h6M9 16h3"/></>}
+    {kind==='historial'&&<><path d="M8 6h13M8 12h13M8 18h13M3.5 6h.01M3.5 12h.01M3.5 18h.01"/></>}
+  </svg>;
+}
 export default function RoomApp() {
   const [code, setCode] = useState('');
   const [session, setSession] = useState<GameSession | null>(null);
@@ -153,12 +164,12 @@ export default function RoomApp() {
   const hostPlayer=snapshot?.players.find(p=>p.role==='host');
   const openAuction=snapshot?.auctions.find(a=>a.status==='open');
   const navItems=[
-    {id:'mesa',name:'Mesa',icon:'🎲'},
-    {id:'tablero',name:'Tablero',icon:'▦'},
-    {id:'banco',name:'Banco',icon:'₥'},
-    {id:'negociar',name:'Tratos',icon:'⇄'},
-    {id:'cartas',name:'Cartas',icon:'♧'},
-    {id:'historial',name:'Registro',icon:'☷'}
+    {id:'mesa',name:'Mesa'},
+    {id:'tablero',name:'Tablero'},
+    {id:'banco',name:'Banco'},
+    {id:'negociar',name:'Tratos'},
+    {id:'cartas',name:'Cartas'},
+    {id:'historial',name:'Registro'}
   ] as const;
 
 
@@ -343,7 +354,7 @@ export default function RoomApp() {
                 onClick={()=>setTab(t.id)}
                 className={'flex min-h-[54px] flex-col items-center justify-center gap-0.5 rounded-xl px-1 text-[10px] font-bold '+
                   (tab===t.id?'bg-emerald-900 text-white':'text-emerald-950')}>
-                <span aria-hidden="true" className="text-[22px] leading-none">{t.icon}</span><span>{t.name}</span>
+                <NavigationIcon kind={t.id}/><span>{t.name}</span>
               </button>)}
           </div>
         </nav>
