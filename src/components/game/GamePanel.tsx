@@ -17,10 +17,11 @@ export default function GamePanel({ state, actions, disabled, mode, sceneMoving=
   const canAct=state.room.status==='active';
   const turn=state.room.currentPlayerId===state.me.id;
   const current=players.find(p=>p.id===state.room.currentPlayerId);
-  const recentSpace=state.rolls[0] ? state.spaces.find(s=>s.position===state.rolls[0].to) : undefined;
+  const lastMyRoll=state.rolls.find(r=>r.playerId===state.me.id);
+  const recentSpace=state.spaces.find(s=>s.position===me?.position);
   const recentOwner=recentSpace ? players.find(p=>p.id===recentSpace.ownerId) : undefined;
   const landing=state.spaces.find(s=>s.position===me?.position);
-  const lastRoll=state.rolls[0];
+  const lastRoll=lastMyRoll;
   const [rolling,setRolling]=useState(false);
   async function rollDice(data:Record<string,unknown> = {}){
     setRolling(true);
@@ -105,10 +106,10 @@ export default function GamePanel({ state, actions, disabled, mode, sceneMoving=
         </p>
       </div>
       <div className="mt-5">
-        <AnimatedTurnScene spaces={state.spaces} players={players} roll={lastRoll} rolling={rolling}/>
+        <AnimatedTurnScene spaces={state.spaces} players={players} player={me} roll={lastRoll} rolling={rolling}/>
       </div>
-      {recentSpace && <section className="mt-5" aria-label="Casilla de llegada">
-        <h3 className="mb-3 text-sm font-black text-emerald-950">Llegaste a esta casilla</h3>
+      {!rolling&&!sceneMoving&&recentSpace && <section className="mt-5" aria-label="Casilla de llegada">
+        <h3 className="mb-3 text-sm font-black text-emerald-950">Tu casilla actual</h3>
         <div className="overflow-hidden rounded-2xl border border-stone-200 bg-white shadow-sm">
           <div className="h-3" style={{backgroundColor:colorGroups[recentSpace.group||'']||
             (recentSpace.type==='chance'?'#a8794f':recentSpace.type==='community'?'#8b5cc8':'#64748b')}}/>
