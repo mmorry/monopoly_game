@@ -9,6 +9,7 @@ import MarketPanel from './MarketPanel';
 import CardChallengesPanel from './CardChallengesPanel';
 import VirtualCardModal from './VirtualCardModal';
 import PropertyOfferModal from './PropertyOfferModal';
+import { journeyMs } from './AnimatedTurnScene';
 
 export interface GameActions {
   act: (action: string, data?: Record<string, unknown>) => Promise<void>;
@@ -175,10 +176,12 @@ export default function RoomApp() {
     }
     if(!activeRoll || lastSceneRollId.current===activeRoll.id)return;
     lastSceneRollId.current=activeRoll.id;
-    const normal=(activeRoll.from+activeRoll.d1+activeRoll.d2)%40===activeRoll.to;
-    const duration=normal ? 750+175*(activeRoll.d1+activeRoll.d2)+280 : 1150;
+    if(activeRoll.playerId!==snapshot.me.id){
+      setSceneMoving(false);
+      return;
+    }
     setSceneMoving(true);
-    const timer=window.setTimeout(()=>setSceneMoving(false),duration);
+    const timer=window.setTimeout(()=>setSceneMoving(false),journeyMs(activeRoll));
     return ()=>window.clearTimeout(timer);
   },[snapshot?.rolls[0]?.id]);
   const latestSpace = latestRoll && snapshot?.spaces.find(s=>s.position===latestRoll.to);
