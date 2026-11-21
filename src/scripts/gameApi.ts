@@ -100,6 +100,24 @@ export interface GameAuction {
   highBid: number;
   highBidder: string | null;
 }
+/** Transcription from the physical F3182 title cards; no position or purchase price assumed. */
+export interface F3182Title {
+  key: string;
+  name: string;
+  department: string | null;
+  kind: 'property'|'railroad'|'utility';
+  group: string | null;
+  rents: number[] | null;
+  groupRent: number | null;
+  buildCost: number | null;
+  hotelCost: number | null;
+  oneUtilityMultiplier: number | null;
+  bothUtilitiesMultiplier: number | null;
+  price: number | null;
+  mortgage: number | null;
+  position: number | null;
+  photo: number;
+}
 export interface CardChallenge {
   id: number;
   playerId: string;
@@ -194,7 +212,7 @@ export function readSession(code: string): GameSession | null {
 }
 export function clearSession(code: string) { localStorage.removeItem(sessionKey(code)); }
 export function money(amount: number): string {
-  return 'S/ ' + new Intl.NumberFormat('es-PE', { maximumFractionDigits: 0 }).format(amount);
+  return 'M ' + new Intl.NumberFormat('es-PE', { maximumFractionDigits: 0 }).format(amount);
 }
 export async function getSnapshot(session: GameSession): Promise<GameSnapshot> {
   const params={ p_code: session.code, p_token: session.token };
@@ -229,4 +247,8 @@ export function cardAction(session: GameSession, action: string, data: Record<st
   return gameRpc<{ok:boolean;cardId:number}>('game_card_action',{
     p_code:session.code,p_token:session.token,p_action:action,p_data:data
   });
+}
+
+export function getF3182Titles() {
+  return gameRpc<F3182Title[]>('game_f3182_titles', {});
 }
