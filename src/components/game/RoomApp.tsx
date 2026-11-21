@@ -36,6 +36,7 @@ export default function RoomApp() {
   const [connection, setConnection] = useState<'connected'|'connecting'|'disconnected'>('disconnected');
   const [tab, setTab] = useState<'mesa'|'tablero'|'banco'|'negociar'|'cartas'|'historial'>('mesa');
   const busyLoad = useRef(false);
+  const refreshQueued = useRef(false);
 
   useEffect(() => {
     const value = new URLSearchParams(window.location.search).get('codigo')?.trim().toUpperCase() || '';
@@ -44,12 +45,19 @@ export default function RoomApp() {
   }, []);
 
   const refresh = useCallback(async () => {
-    if (!session || busyLoad.current) return;
+    if (!session) return;
+    if (busyLoad.current) {
+      refreshQueued.current = true;
+      return;
+    }
     busyLoad.current = true;
     try {
-      const data = await getSnapshot(session);
-      setSnapshot(data);
-      setError('');
+      do {
+        refreshQueued.current = false;
+        const data = await getSnapshot(session);
+        setSnapshot(data);
+        setError('');
+      } while (refreshQueued.current);
     } catch (cause) {
       setError(cause instanceof Error ? cause.message : 'No se pudo consultar la partida.');
     } finally {
@@ -60,7 +68,10 @@ export default function RoomApp() {
   useEffect(() => { if (session) void refresh(); }, [session, refresh]);
   useEffect(() => {
     if (!session || !snapshot?.room.topic || snapshot.room.status === 'finished') return;
-    return connectRoomSocket(snapshot.room.topic, () => { void refresh(); }, setConnection);
+    return connectRoomSocket(snapshot.room.topic, () => { void refresh(); }, next => {
+      setConnection(next);
+      if (next==='connected') void refresh();
+    });
   }, [session, snapshot?.room.topic, snapshot?.room.status, refresh]);
   useEffect(() => {
     const onVisible = () => { if (document.visibilityState === 'visible') void refresh(); };
