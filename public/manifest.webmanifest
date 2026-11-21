@@ -1,0 +1,20 @@
+{
+  "id": "monopoly-peru",
+  "name": "Monopoly Perú · Banca digital",
+  "short_name": "Monopoly Perú",
+  "description": "Banca digital para acompañar tu tablero físico con salas privadas y sincronización en tiempo real.",
+  "lang": "es-PE",
+  "start_url": "/",
+  "scope": "/",
+  "display": "standalone",
+  "background_color": "#f7f0df",
+  "theme_color": "#064e3b",
+  "icons": [
+    {
+      "src": "/favicon.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "any"
+    }
+  ]
+}
