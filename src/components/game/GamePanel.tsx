@@ -2,6 +2,7 @@ import { useState, type FormEvent } from 'react';
 import { money, type GameSnapshot, type GamePlayer } from '../../scripts/gameApi';
 import type { GameActions } from './RoomApp';
 import CardChallengesPanel from './CardChallengesPanel';
+import AnimatedTurnScene from './AnimatedTurnScene';
 interface Props { state: GameSnapshot; actions: GameActions; disabled: boolean; mode?: 'bank' }
 const field='min-h-11 w-full rounded-xl border-2 border-stone-300 bg-white px-3 py-2 text-base text-stone-950 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-emerald-700';
 const btn='rounded-xl bg-emerald-700 px-4 py-3 text-sm font-black text-white hover:bg-emerald-800 disabled:cursor-not-allowed disabled:opacity-40';
@@ -17,12 +18,10 @@ export default function GamePanel({ state, actions, disabled, mode }: Props) {
   const turn=state.room.currentPlayerId===state.me.id;
   const current=players.find(p=>p.id===state.room.currentPlayerId);
   const recentSpace=state.rolls[0] ? state.spaces.find(s=>s.position===state.rolls[0].to) : undefined;
-  const recentPlayer=state.rolls[0] ? players.find(p=>p.id===state.rolls[0].playerId) : undefined;
   const recentOwner=recentSpace ? players.find(p=>p.id===recentSpace.ownerId) : undefined;
   const landing=state.spaces.find(s=>s.position===me?.position);
   const lastRoll=state.rolls[0];
   const [rolling,setRolling]=useState(false);
-  const dieFaces=['','⚀','⚁','⚂','⚃','⚄','⚅'];
   async function rollDice(data:Record<string,unknown> = {}){
     setRolling(true);
     try { await actions.act('roll',data); }
@@ -95,8 +94,6 @@ export default function GamePanel({ state, actions, disabled, mode }: Props) {
   if(mode==='bank') return <div className="space-y-5">{bankPanel}</div>;
 
   return <div className="grid min-w-0 w-full gap-5">
-    <style>{`@keyframes monopoly-progress {from{width:0%} to{width:100%}}
-      @keyframes monopoly-marker {from{left:0%} to{left:calc(100% - 18px)}}`}</style>
     {state.cards.some(challenge=>challenge.outcome==='pending') &&
       <CardChallengesPanel state={state} actions={actions} disabled={disabled} compact/>}
     <section className={card}>
@@ -107,53 +104,30 @@ export default function GamePanel({ state, actions, disabled, mode }: Props) {
           {turn?'Es tu turno de jugar':'Turno de '+(current?.alias||'otro jugador')}
         </p>
       </div>
-      {(lastRoll||rolling) && <div className="mx-auto mt-5 w-full max-w-sm rounded-3xl border border-amber-200 bg-gradient-to-b from-amber-50 to-amber-100 px-5 py-6 text-center shadow-sm" aria-live="polite">
-        <p className="text-xs font-black uppercase tracking-widest text-amber-900">{rolling?'Lanzando…':'Última tirada'}</p>
-        <div className="my-2 flex justify-center gap-3">
-          {[lastRoll?.d1||1,lastRoll?.d2||1].map((value,i)=>
-            <span key={i} className={'text-6xl leading-none text-amber-950 '+(rolling?'animate-bounce':'')}
-              style={{animationDelay:i?'120ms':'0ms'}} aria-label={'Resultado del dado '+(i+1)+': '+value}>
-              {rolling?'⚄':dieFaces[value]}
-            </span>)}
-        </div>
-        {lastRoll&&<>
-          <p className="text-3xl font-black text-amber-950">{lastRoll.d1} + {lastRoll.d2} = {lastRoll.d1+lastRoll.d2}</p>
-          <p className="mt-2 text-xs font-semibold text-amber-900">
-            {recentPlayer?.alias||'Jugador'} · {lastRoll.from} → {lastRoll.to}
-            {lastRoll.d1===lastRoll.d2?' · Dobles':''}
-          </p>
-          <div className="mx-auto mt-4 flex max-w-xs items-center gap-2">
-            <span className="grid size-8 shrink-0 place-items-center rounded-full bg-white text-xs font-black text-amber-950">{lastRoll.from}</span>
-            <div className="relative h-2 grow overflow-hidden rounded-full bg-amber-200">
-              <div key={lastRoll.id} className="h-full rounded-full bg-emerald-700"
-                style={{animation:'monopoly-progress 850ms ease-out both'}}/>
-              <span key={'marker-'+lastRoll.id} aria-hidden="true"
-                className="absolute top-1/2 size-[18px] -translate-y-1/2 rounded-full border-2 border-white bg-emerald-900 shadow-md"
-                style={{animation:'monopoly-marker 850ms ease-out both'}}/>
-            </div>
-            <span className="grid size-8 shrink-0 place-items-center rounded-full bg-emerald-800 text-xs font-black text-white">{lastRoll.to}</span>
-          </div>
-          <p className="mt-2 text-xs font-bold text-emerald-900">
-            {((lastRoll.from+lastRoll.d1+lastRoll.d2)%40)===lastRoll.to
-              ? 'Avanzó '+(lastRoll.d1+lastRoll.d2)+' casillas'
-              : 'Movimiento especial a casilla '+lastRoll.to}
-          </p>
-        </>}
-      </div>}
-      {recentSpace && <section className="mt-5">
-        <h3 className="mb-3 text-sm font-black text-emerald-950">Casilla de la última tirada</h3>
+      <div className="mt-5">
+        <AnimatedTurnScene spaces={state.spaces} players={players} roll={lastRoll} rolling={rolling}/>
+      </div>
+      {recentSpace && <section className="mt-5" aria-label="Casilla de llegada">
+        <h3 className="mb-3 text-sm font-black text-emerald-950">Llegaste a esta casilla</h3>
         <div className="overflow-hidden rounded-2xl border border-stone-200 bg-white shadow-sm">
-          <div className="h-3" style={{backgroundColor:colorGroups[recentSpace.group||'']||'#64748b'}}/>
+          <div className="h-3" style={{backgroundColor:colorGroups[recentSpace.group||'']||
+            (recentSpace.type==='chance'?'#a8794f':recentSpace.type==='community'?'#8b5cc8':'#64748b')}}/>
           <div className="flex items-center justify-between gap-3 px-4 py-4">
             <div className="min-w-0">
-              <p className="text-xs font-bold uppercase tracking-wide text-stone-500">#{recentSpace.position} · {recentSpace.group||'Especial'}</p>
+              <p className="text-xs font-bold uppercase tracking-wide text-stone-500">
+                #{recentSpace.position} · {recentSpace.group||
+                  (recentSpace.type==='chance'?'El Chamán':recentSpace.type==='community'?'La Tómbola':'Casilla especial')}
+              </p>
               <p className="mt-1 text-base font-black text-emerald-950">{recentSpace.name}</p>
               <p className="mt-1 text-xs text-stone-600">
-                {recentOwner?'Propietario: '+recentOwner.alias:'Sin propietario'}
+                {recentOwner?'Propietario: '+recentOwner.alias:
+                  ['property','railroad','utility'].includes(recentSpace.type)?'Disponible para compra o subasta':'Casilla no comprable'}
                 {recentSpace.mortgaged?' · Hipotecada':''}
               </p>
             </div>
-            {recentSpace.price!==null && <strong className="shrink-0 rounded-xl bg-emerald-50 p-3 text-sm text-emerald-900">{money(recentSpace.price)}</strong>}
+            {recentSpace.price!==null && <strong className="shrink-0 rounded-xl bg-emerald-50 p-3 text-sm text-emerald-900">
+              {money(recentSpace.price)}
+            </strong>}
           </div>
         </div>
       </section>}
