@@ -1,5 +1,5 @@
-import { useState, type FormEvent } from 'react';
-import { money, type CardChallenge, type GameSnapshot } from '../../scripts/gameApi';
+import { useEffect, useState, type FormEvent } from 'react';
+import { getF3182Cards, money, type CardChallenge, type F3182PhysicalCard, type GameSnapshot } from '../../scripts/gameApi';
 import type { GameActions } from './RoomApp';
 
 interface Props { state:GameSnapshot; actions:GameActions; disabled:boolean; compact?:boolean }
@@ -40,6 +40,31 @@ export default function CardChallengesPanel({state,actions,disabled,compact=fals
  const [newPosition,setNewPosition]=useState('');
  const [title,setTitle]=useState('');
  const [instruction,setInstruction]=useState('');
+ const [physicalCards,setPhysicalCards]=useState<F3182PhysicalCard[]>([]);
+ const [selectedPhysical,setSelectedPhysical]=useState('');
+ const [catalogFailure,setCatalogFailure]=useState('');
+ useEffect(()=>{
+   let live=true;
+   void getF3182Cards().then(cards=>{if(live)setPhysicalCards(cards);})
+     .catch(e=>{if(live)setCatalogFailure(e instanceof Error?e.message:'Sin conexión al catálogo');});
+   return ()=>{live=false;};
+ },[]);
+ const catalogForDeck=physicalCards.filter(card=>card.deck===pending?.deck);
+ const physicalSelected=physicalCards.find(card=>card.deck+':'+card.number===selectedPhysical);
+ function choosePhysical(value:string){
+   setSelectedPhysical(value);
+   const found=physicalCards.find(c=>c.deck+':'+c.number===value);
+   if(!found)return;
+   setCardNumber(String(found.number));
+   setTitle(found.title);
+   setInstruction(found.instruction);
+   const direct=['bank_receive','bank_pay','move','move_pass_go','move_collect','jail'];
+   const action=direct.includes(found.effect)?(found.effect.startsWith('move')?'move':found.effect):'none';
+   setEffect(action);
+   setNumberAmount(action==='bank_receive'||action==='bank_pay'?String(found.value??''):'');
+   if(action==='move')setNewPosition(String(found.value??0));
+   setManualNote('');
+ }
  const eligible=state.players.filter(p=>p.id!==pending?.playerId && !p.bankrupt);
  const moneyEffect=['bank_receive','bank_pay','pay_player','collect_player'].includes(effect);
  const otherEffect=['pay_player','collect_player'].includes(effect);
@@ -99,6 +124,22 @@ export default function CardChallengesPanel({state,actions,disabled,compact=fals
        Esperando al anfitrión para registrar el reto y sus efectos. No se puede finalizar el turno hasta resolverlo.
      </p>}
      {host && <form key={pending.id} className="mt-5 grid gap-4" onSubmit={resolve}>
+       <label className="grid gap-1 text-sm font-semibold">Seleccionar carta F3182 fotografiada
+         <select aria-label="Tarjeta física F3182" className={input} value={selectedPhysical}
+           onChange={e=>choosePhysical(e.target.value)}>
+           <option value="">Selecciona la carta que apareció en el mazo físico</option>
+           {catalogForDeck.map(item=><option key={item.number} value={item.deck+':'+item.number}>
+             {String(item.number).padStart(2,'0')} · {item.title}</option>)}
+         </select>
+       </label>
+       {catalogFailure && <p role="alert" className="text-sm text-red-700">{catalogFailure}</p>}
+       {physicalSelected && !['bank_receive','bank_pay','move','jail'].includes(physicalSelected.effect) &&
+         <p className="rounded-xl border border-amber-300 bg-amber-50 p-3 text-sm text-amber-950">
+           Esta tarjeta tiene un efecto especial ({physicalSelected.effect}).
+           El catálogo conserva la instrucción original, pero el efecto completo todavía requiere
+           gestión manual del anfitrión. No marques la carta como liquidada sin comprobar
+           también todos sus pagos, bonificaciones y movimientos en la banca.
+         </p>}
        <label className="grid gap-1 text-sm font-semibold">Número de carta (opcional, 1 a 16)
          <input className={input} type="number" min="1" max="16" step="1" value={cardNumber}
            onChange={e=>setCardNumber(e.target.value)} placeholder="Si las cartas están numeradas"/></label>
