@@ -37,14 +37,13 @@ export default function VirtualCardModal({state,actions,disabled,error}:Props){
       <p className="mt-2 text-center text-sm text-stone-600">
         Turno de {player?.alias||'Jugador'}
       </p>
-      <div className={'mx-auto mt-5 flex min-h-60 max-w-xs flex-col items-center justify-center rounded-2xl border-[5px] p-5 text-center shadow-lg transition-transform duration-500 '+
+      <div className={'mx-auto mt-5 flex min-h-60 max-w-xs flex-col items-center justify-center rounded-2xl border-[5px] p-5 text-center shadow-lg '+
         (revealed?'border-red-700 bg-white':'border-amber-600 bg-emerald-900 text-white')+
-        (flipping?' scale-95':'')}
-        style={{transform:flipping?'rotateY(180deg) scale(.95)':'rotateY(0deg)'}}>
-        {revealed && !flipping ? <>
+        (flipping?' animate-pulse scale-95':'')}>
+        {revealed ? <>
           <p className="text-xs font-black uppercase tracking-widest text-red-800">{deckLabel(pending.deck)}</p>
-          <h3 className="mt-4 text-lg font-black text-stone-950">{pending.title}</h3>
-          <p className="mt-4 text-base font-semibold leading-7 text-stone-800">{pending.instruction}</p>
+          <h3 className="mt-4 text-lg font-black text-stone-950">{pending.title||'Carta de '+deckLabel(pending.deck)}</h3>
+          <p className="mt-4 text-base font-semibold leading-7 text-stone-800">{pending.instruction||'No se pudo cargar la instrucción. Actualiza la partida antes de finalizar.'}</p>
         </> : <>
           <span className="animate-pulse text-7xl" aria-hidden="true">🃏</span>
           <p className="mt-5 font-black tracking-widest">F3182</p>
@@ -63,7 +62,7 @@ export default function VirtualCardModal({state,actions,disabled,error}:Props){
           Confirma para aplicar el efecto de la carta una sola vez.
         </p>
         {error&&<p role="alert" className="mt-3 rounded-lg bg-red-50 p-3 text-sm font-semibold text-red-800">{error}</p>}
-        <button type="button" disabled={disabled||flipping} onClick={()=>void actions.finishVirtualCard(pending.id)}
+        <button type="button" disabled={disabled||flipping||!pending.instruction} onClick={()=>void actions.finishVirtualCard(pending.id)}
           className="mt-4 w-full rounded-xl bg-emerald-800 px-5 py-3 font-black text-white disabled:opacity-40">
           {disabled?'Aplicando…':'Cumplir y finalizar carta'}
         </button>
