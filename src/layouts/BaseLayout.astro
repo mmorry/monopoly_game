@@ -16,8 +16,8 @@ const { title, description='Banca digital para partidas de Monopoly Perú.' }=As
     <meta name="generator" content={Astro.generator} />
     <title>{title}</title>
   </head>
-  <body class="min-h-dvh bg-stone-50 text-stone-950">
-    <div class="min-h-dvh"><slot /></div>
+  <body class="min-h-dvh w-full min-w-0 overflow-x-clip bg-stone-50 text-stone-950">
+    <div class="min-h-dvh w-full min-w-0"><slot /></div>
     <script is:inline>
       if ('serviceWorker' in navigator) {
         window.addEventListener('load', () => {
