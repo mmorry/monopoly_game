@@ -53,6 +53,9 @@ export default function RoomApp() {
   const [connection, setConnection] = useState<'connected'|'connecting'|'disconnected'>('disconnected');
   const [tab, setTab] = useState<'mesa'|'tablero'|'banco'|'negociar'|'cartas'|'historial'>('mesa');
   const [detailsOpen,setDetailsOpen]=useState(false);
+  const [sceneMoving,setSceneMoving]=useState(false);
+  const initialRollSeen=useRef(false);
+  const lastSceneRollId=useRef<number|undefined>(undefined);
   const busyLoad = useRef(false);
   const refreshQueued = useRef(false);
 
@@ -158,6 +161,22 @@ export default function RoomApp() {
   const finished = snapshot?.room.status === 'finished';
   const current = snapshot?.room.currentPlayerId === snapshot?.me.id;
   const latestRoll = snapshot?.rolls[0];
+  useEffect(()=>{
+    if(!snapshot)return;
+    const activeRoll=snapshot.rolls[0];
+    if(!initialRollSeen.current){
+      initialRollSeen.current=true;
+      lastSceneRollId.current=activeRoll?.id;
+      return;
+    }
+    if(!activeRoll || lastSceneRollId.current===activeRoll.id)return;
+    lastSceneRollId.current=activeRoll.id;
+    const normal=(activeRoll.from+activeRoll.d1+activeRoll.d2)%40===activeRoll.to;
+    const duration=normal ? 750+175*(activeRoll.d1+activeRoll.d2)+280 : 1150;
+    setSceneMoving(true);
+    const timer=window.setTimeout(()=>setSceneMoving(false),duration);
+    return ()=>window.clearTimeout(timer);
+  },[snapshot?.rolls[0]?.id]);
   const latestSpace = latestRoll && snapshot?.spaces.find(s=>s.position===latestRoll.to);
   const latestOwner = latestSpace && snapshot?.players.find(p=>p.id===latestSpace.ownerId);
   const latestPlayer = latestRoll && snapshot?.players.find(p=>p.id===latestRoll.playerId);
@@ -294,13 +313,13 @@ export default function RoomApp() {
         </div>
         {tab==='mesa' && (waiting ?
           <LobbyPanel state={snapshot} actions={actions} disabled={busy}/> :
-          <GamePanel state={snapshot} actions={actions} disabled={busy}/>)}
+          <GamePanel state={snapshot} actions={actions} disabled={busy} sceneMoving={sceneMoving}/>)}
         {tab==='tablero' && <BoardPanel state={snapshot} actions={actions} disabled={busy}/>}
         {tab==='banco' && !waiting && <GamePanel state={snapshot} actions={actions} disabled={busy} mode="bank"/>}
         {tab==='negociar' && !waiting && <MarketPanel state={snapshot} actions={actions} disabled={busy}/>}
         {tab==='cartas' && !waiting && <CardChallengesPanel state={snapshot} actions={actions} disabled={busy}/>}
-        <VirtualCardModal state={snapshot} actions={actions} disabled={busy} error={error}/>
-        <PropertyOfferModal state={snapshot} actions={actions} disabled={busy}/>
+        {!sceneMoving && <VirtualCardModal state={snapshot} actions={actions} disabled={busy} error={error}/>}
+        {!sceneMoving && <PropertyOfferModal state={snapshot} actions={actions} disabled={busy}/>}
         {tab==='historial' && <section className={panel}>
           <h2 className="text-xl font-black text-emerald-950">Registro de la partida</h2>
           {snapshot.ledger.length>0 && <div className="mt-4">
