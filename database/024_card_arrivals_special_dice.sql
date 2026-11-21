@@ -85,11 +85,11 @@ BEGIN
   EXECUTE src;
 
   src:=pg_get_functiondef('public.game_action(text,text,text,jsonb)'::regprocedure);
-  IF position('   if v_room.pending_amount>0 then raise exception ''Debes saldar el pago pendiente''; end if;' IN src)=0
+  IF position('   if v_room.pending_amount>0 then raise exception ''Debes saldar el pago pendiente'';end if;' IN src)=0
   THEN RAISE EXCEPTION 'La finalización manual cambió';END IF;
   src:=replace(src,
-'   if v_room.pending_amount>0 then raise exception ''Debes saldar el pago pendiente''; end if;',
-'   if v_room.pending_amount>0 then raise exception ''Debes saldar el pago pendiente''; end if;
+'   if v_room.pending_amount>0 then raise exception ''Debes saldar el pago pendiente'';end if;',
+'   if v_room.pending_amount>0 then raise exception ''Debes saldar el pago pendiente'';end if;
    if exists(select 1 from public.room_card_challenges c where c.room_id=v_room.id
       and c.player_id=v_me and c.turn_number=v_room.turn_number
       and c.arrival_status in (''pending'',''auction'',''special_dice'')) then
