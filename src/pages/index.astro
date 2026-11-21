@@ -55,6 +55,12 @@ import RoomAction from '../components/home/RoomAction.astro';
 					</div>
 				</div>
 				<div class="grid gap-4">
+          <section id="resume-room" hidden class="rounded-xl border-2 border-emerald-400 bg-emerald-50 p-4">
+            <p class="text-sm font-black text-emerald-900">Tienes una partida guardada</p>
+            <p class="mt-1 text-xs text-emerald-800">Tu ficha se conserva aunque la sala esté cerrada a nuevos jugadores.</p>
+            <a id="resume-room-link" class="mt-3 block rounded-xl bg-emerald-800 px-4 py-3 text-center text-sm font-bold text-white"
+               href="/sala">Volver a mi partida</a>
+          </section>
 					<RoomAction href="/crear" label="Crear sala" description="Prepara una mesa privada para tu grupo." variant="primary">
 						<svg slot="icon" class="size-6" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M12 5v14M5 12h14" /></svg>
 					</RoomAction>
@@ -72,3 +78,18 @@ import RoomAction from '../components/home/RoomAction.astro';
 		</footer>
 	</main>
 </BaseLayout>
+
+<script>
+  const entries=Object.keys(localStorage)
+    .filter(key=>key.startsWith('monopoly:session:v1:'))
+    .map(key=>key.substring('monopoly:session:v1:'.length))
+    .filter(code=>/^[A-F0-9]{12}$/.test(code));
+  if(entries.length){
+    const section=document.getElementById('resume-room');
+    const anchor=document.querySelector<HTMLAnchorElement>('#resume-room-link');
+    if(section&&anchor){
+      anchor.href='/sala?codigo='+encodeURIComponent(entries[entries.length-1]);
+      section.hidden=false;
+    }
+  }
+</script>
